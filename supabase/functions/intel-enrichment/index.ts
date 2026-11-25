@@ -32,7 +32,8 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return reply(405, { error: "method_not_allowed" });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const publishableKeys = JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "{}");
+  const anonKey = publishableKeys.default;
   const authorization = req.headers.get("Authorization");
   if (!supabaseUrl || !anonKey || !authorization) return reply(401, { error: "authentication_required" });
 
@@ -46,7 +47,8 @@ Deno.serve(async (req: Request) => {
   const kind = classify(indicator);
   if (!kind) return reply(400, { error: "invalid_indicator", accepted: "IPv4, public domain, MD5/SHA1/SHA256 hash" });
 
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+  const serviceKey = secretKeys.default;
   if (!serviceKey) return reply(503, { error: "server_configuration_missing" });
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
   const since = new Date(Date.now() - 60_000).toISOString();
