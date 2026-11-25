@@ -1,0 +1,56 @@
+name: blackveil-labs
+
+services:
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: blackveil-juice-shop
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - labnet
+
+  webgoat:
+    image: webgoat/webgoat:latest
+    container_name: blackveil-webgoat
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:9090:9090"
+    networks:
+      - labnet
+
+  kali:
+    build:
+      context: .
+      dockerfile: Dockerfile.kali
+    container_name: blackveil-kali
+    profiles: ["tools"]
+    init: true
+    cap_add:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    working_dir: /workspace
+    volumes:
+      - ./workspace:/workspace
+    command: ["sleep", "infinity"]
+    stdin_open: true
+    tty: true
+    networks:
+      - labnet
+
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: blackveil-zap
+    profiles: ["tools"]
+    entrypoint: ["zap-baseline.py"]
+    networks:
+      - labnet
+
+networks:
+  labnet:
+    name: blackveil-labnet
+    internal: true
