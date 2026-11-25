@@ -206,6 +206,34 @@ async def dispatch_handoff(project: str, state: ProjectState, checkpoint: dict[s
         return HandoffAck.model_validate(response.json())
 
 
+async def dispatch_continue(project: str, state: ProjectState) -> None:
+    """Send the five-minute continuation nudge to the project's execution agent."""
+    pc = project_config(project)
+    if not pc["webhook_url"] or not pc["webhook_token"]:
+        return
+    tick = int(datetime.now(timezone.utc).timestamp() // cfg.supervisor_interval_seconds)
+    idem = hashlib.sha256(f"{project}:{state.active_session_id}:continue:{tick}".encode()).hexdigest()
+    payload = {
+        "event": "continuity.supervisor_tick",
+        "project": project,
+        "repository": pc["repository"],
+        "session_id": state.active_session_id,
+        "instruction": "Continue the current authorized work from the latest checkpoint. "
+                       "Do not repeat completed tasks. Update the heartbeat and report context usage. "
+                       "Pause for approval on critical or irreversible actions.",
+        "policy": {"autonomy": "autonomous", "approval": "critical"},
+        "idempotency_key": idem,
+    }
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            pc["webhook_url"],
+            json=payload,
+            headers={"Authorization": f"Bearer {pc['webhook_token']}", "Idempotency-Key": idem},
+        )
+        response.raise_for_status()
+    record(SessionLocal(), project, "continuation_dispatched", {"session_id": state.active_session_id, "tick": tick})
+
+
 async def supervise_once() -> None:
     if SessionLocal is None:
         return
@@ -258,6 +286,11 @@ async def supervise_once() -> None:
                     state.status = "stale_heartbeat"
                     db.commit()
                     record(db, project, "stale_heartbeat", {"age_seconds": int(age)})
+                elif state.status == "working":
+                    try:
+                        await dispatch_continue(project, state)
+                    except Exception as exc:
+                        record(db, project, "continuation_dispatch_failed", {"error": type(exc).__name__})
         finally:
             db.close()
 
