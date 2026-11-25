@@ -1,12 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { User } from '@supabase/supabase-js'
 import {
   Activity, ArrowUpRight, Bell, BookOpen, ChevronDown, ChevronRight, CircleDot, Command,
   Crosshair, Database, FileSearch, Fingerprint, FlaskConical, LayoutDashboard,
-  LockKeyhole, Menu, Network, Radar, Search, Settings2, Shield, ShieldAlert,
+  LockKeyhole, Menu, Network, Radar, Search, Settings2, Shield, ShieldAlert, UserRound,
   ShieldCheck, Terminal, X, Zap
 } from 'lucide-react'
 import Academy from './Academy'
 import Operations from './Operations'
+import AuthPanel from './AuthPanel'
+import Profile from './Profile'
+import MissionModules from './MissionModules'
+import { getSupabaseClient } from './lib/supabase'
 import './styles.css'
 
 type Profile = 'White Hat' | 'Black Hat' | 'Red Hat' | 'Blue Hat' | 'Purple Hat'
@@ -38,7 +43,8 @@ const nav = [
   { label: 'Academy', icon: BookOpen },
   { label: 'Threat intelligence', icon: Radar },
   { label: 'Laboratories', icon: FlaskConical },
-  { label: 'Devices', icon: Database }
+  { label: 'Devices', icon: Database },
+  { label: 'Profile', icon: UserRound }
 ]
 function App() {
   const [profile, setProfile] = useState<Profile>('Purple Hat')
@@ -47,6 +53,15 @@ function App() {
   const [mobileNav, setMobileNav] = useState(false)
   const [activeTool, setActiveTool] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
+  const [user, setUser] = useState<User | null>(null)
+
+  useEffect(() => {
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null))
+    return () => subscription.unsubscribe()
+  }, [])
 
   const filteredTools = useMemo(() => tools.filter(t => (t.name + t.description + t.category).toLowerCase().includes(query.toLowerCase())), [query])
   const chooseSection = (label: string) => { setSection(label); setMobileNav(false); setActiveTool(null) }
@@ -58,11 +73,11 @@ function App() {
       <div className="workspace-card"><div className="workspace-icon"><Command size={16}/></div><div><b>Personal workspace</b><span>Local environment</span></div><span className="online-dot"/></div>
       <div className="nav-label">PLATFORM</div>
       <nav>{nav.map(item => <button key={item.label} className={`nav-item ${section === item.label ? 'active' : ''}`} onClick={() => chooseSection(item.label)}><item.icon size={17}/><span>{item.label}</span>{item.label === 'Devices' && <small>0</small>}</button>)}</nav>
-      <div className="sidebar-bottom"><div className="security-status"><div className="status-icon"><LockKeyhole size={15}/></div><div><b>Security status</b><span>Local-only · No agent paired</span></div></div><button className="nav-item" onClick={() => chooseSection('Settings')}><Settings2 size={17}/><span>Settings</span></button><div className="user-row"><div className="avatar">BV</div><div><b>Operator</b><span>Standard access</span></div><ChevronDown size={15}/></div></div>
+      <div className="sidebar-bottom"><div className="security-status"><div className="status-icon"><LockKeyhole size={15}/></div><div><b>Security status</b><span>Local-only · No agent paired</span></div></div><button className="nav-item" onClick={() => chooseSection('Settings')}><Settings2 size={17}/><span>Settings</span></button><button className="user-row user-row-button" onClick={() => chooseSection('Profile')}><div className="avatar">{user?.email?.slice(0,2).toUpperCase() || 'BV'}</div><div><b>{user?.user_metadata?.full_name || user?.email || 'Guest operator'}</b><span>{user ? 'Authenticated account' : 'Sign in to sync profile'}</span></div><ChevronDown size={15}/></button></div>
     </aside>
     {mobileNav && <button className="mobile-scrim" onClick={() => setMobileNav(false)} aria-label="Close navigation"/>}
     <main className="main-area">
-      <header className="topbar"><div className="top-left"><button className="mobile-menu" onClick={() => setMobileNav(true)}><Menu size={19}/></button><div className="breadcrumb">Workspace <ChevronRight size={13}/> <b>{section}</b></div></div><div className="top-actions"><div className="system-pill"><span className="online-dot"/> SYSTEM OPERATIONAL</div><button className="icon-btn" aria-label="Notifications" onClick={() => setNotice('No tienes notificaciones nuevas.')}><Bell size={17}/></button><div className="top-avatar">OP</div></div></header>
+      <header className="topbar"><div className="top-left"><button className="mobile-menu" onClick={() => setMobileNav(true)}><Menu size={19}/></button><div className="breadcrumb">Workspace <ChevronRight size={13}/> <b>{section}</b></div></div><div className="top-actions"><div className="system-pill"><span className="online-dot"/> SYSTEM OPERATIONAL</div><button className="icon-btn" aria-label="Notifications" onClick={() => setNotice('No tienes notificaciones nuevas.')}><Bell size={17}/></button><button className="top-avatar top-avatar-button" onClick={() => chooseSection(user ? 'Profile' : 'Sign in')} aria-label={user ? 'Open profile' : 'Sign in'}>{user?.email?.slice(0,2).toUpperCase() || 'OP'}</button></div></header>
       <div className="page-content">
         {section === 'Overview' ? <><div className="page-heading"><div><div className="eyebrow"><span/> SECURITY OPERATIONS CENTER</div><h1>Command overview<span className="heading-dot">.</span></h1><p>Tu espacio de trabajo para operaciones de ciberseguridad.</p></div><button className="date-chip"><Activity size={15}/> LIVE ENVIRONMENT</button></div>
           <section className="hero-panel"><div className="hero-grid"/><div className="hero-content"><div className="hero-kicker"><Zap size={13}/> OPERATIONAL PROFILE</div><h2>Think like an attacker.<br/><em>Defend like a strategist.</em></h2><p>Un entorno unificado para analizar, aprender y proteger sistemas con control y trazabilidad.</p><div className="hero-buttons"><button className="primary-btn" onClick={() => chooseSection('Toolbox')}>Explore toolbox <ArrowUpRight size={16}/></button><button className="ghost-btn" onClick={() => chooseSection('Laboratories')}>Open laboratories <ChevronRight size={15}/></button></div></div><div className="hero-orb"><div className="orb-ring ring-one"/><div className="orb-ring ring-two"/><div className="orb-core"><ShieldCheck size={37}/></div><span className="orb-caption">CONTROLLED<br/>ENVIRONMENT</span></div><div className="hero-index">BV / 001 — FIELD CONSOLE</div></section>
