@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       ca-certificates curl dnsutils git jq netcat-openbsd nikto nmap python3 \
+       ca-certificates curl dnsutils git jq libcap2-bin netcat-openbsd nikto nmap python3 \
        python3-pip sqlmap whois \
     && useradd --create-home --uid 1000 --shell /bin/bash analyst \
     && mkdir -p /workspace \
