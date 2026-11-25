@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getSupabaseClient } from './lib/supabase'
 import { Activity, ArrowUpRight, Bug, Database, Globe, LoaderCircle, Search, ShieldCheck, Wifi } from 'lucide-react'
 
 type LookupKind='dns'|'rdap'|'certificates'|'cves'
@@ -16,6 +17,21 @@ export default function InternetRecon(){
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
  const [last,setLast]=useState('')
+ const [advancedBusy,setAdvancedBusy]=useState(false)
+ const [advancedResult,setAdvancedResult]=useState('')
+ const runAdvanced=async()=>{
+  setAdvancedBusy(true);setAdvancedResult('')
+  try{
+   const supabase=getSupabaseClient()
+   if(!supabase)throw new Error('Supabase is not configured.')
+   const {data:sessionData}=await supabase.auth.getSession()
+   if(!sessionData.session)throw new Error('Sign in to use authenticated provider integrations.')
+   const {data,error}=await supabase.functions.invoke('intel-enrichment',{body:{indicator:target.trim()}})
+   if(error)throw new Error(error.message)
+   setAdvancedResult(JSON.stringify(data,null,2))
+  }catch(e){setAdvancedResult('Integration unavailable: '+(e instanceof Error?e.message:'unknown error'))}
+  finally{setAdvancedBusy(false)}
+ }
  const run=async()=>{
   setBusy(true);setError('');setResult('')
   try{
@@ -64,5 +80,5 @@ export default function InternetRecon(){
  <div className="internet-grid"><section className="panel internet-controls"><div className="panel-heading"><div><div className="eyebrow">01 / DATA SOURCE</div><h3>Choose intelligence source</h3></div><Wifi size={18}/></div><div className="internet-source-list">{kinds.map(k=><button key={k.id} className={'internet-source '+(kind===k.id?'selected':'')} onClick={()=>{setKind(k.id);setResult('');setError('')}}><span className="internet-source-icon">{k.id==='dns'?<Activity size={16}/>:k.id==='rdap'?<Database size={16}/>:k.id==='certificates'?<ShieldCheck size={16}/>:<Bug size={16}/>}</span><span><b>{k.label}</b><small>{k.description}</small></span><ArrowUpRight size={14}/></button>)}</div><label className="field-label">DOMAIN / IP / PRODUCT KEYWORD</label><input className="internet-target" value={target} onChange={e=>setTarget(e.target.value)} placeholder={kind==='cves'?'e.g. OpenSSH 9.6':kind==='rdap'?'example.com or 8.8.8.8':'example.com'} onKeyDown={e=>{if(e.key==='Enter')void run()}}/>{kind==='dns'&&<><label className="field-label">DNS RECORD TYPE</label><select className="internet-target" value={record} onChange={e=>setRecord(e.target.value)}>{['A','AAAA','MX','TXT','NS','CNAME','CAA','SOA'].map(x=><option key={x}>{x}</option>)}</select></>}<button className="primary-btn run-btn" onClick={()=>void run()} disabled={busy||!target.trim()}>{busy?<LoaderCircle className="spin-icon" size={15}/>:<Search size={15}/>} {busy?'Querying public source…':'Run internet lookup'}</button>{error&&<div className="auth-error">{error}</div>}<p className="privacy-note"><Globe size={13}/> Requests are sent to the selected public provider. Do not submit private indicators or sensitive internal hostnames.</p></section>
  <section className="panel internet-results"><div className="panel-heading"><div><div className="eyebrow">02 / LIVE RESPONSE</div><h3>Intelligence output</h3></div><span className="live-label"><span/> LIVE QUERY</span></div>{result?<><div className="internet-result-meta"><span>{kinds.find(k=>k.id===kind)?.label}</span><time>{last}</time></div><pre className="intel-details internet-output">{result}</pre><button className="text-link" onClick={()=>void navigator.clipboard.writeText(result)}>Copy response <ArrowUpRight size={13}/></button></>:<div className="empty-activity"><div className="empty-icon"><Globe size={20}/></div><b>Awaiting an internet query</b><span>Choose a source, enter a target and run a lookup.</span></div>}</section></div>
  <section className="panel internet-connectors"><div className="panel-heading"><div><div className="eyebrow">03 / ADVANCED PROVIDERS</div><h3>External intelligence connectors</h3></div><Database size={18}/></div><div className="connector-grid"><article><b>Shodan</b><p>Internet-exposed service and banner intelligence. Requires a Shodan API key and a server-side proxy.</p><span className="planned-tag">SERVER KEY REQUIRED</span></article><article><b>Censys</b><p>Host, service and certificate intelligence from the Censys Internet Map. Requires API credentials.</p><span className="planned-tag">SERVER KEY REQUIRED</span></article><article><b>VirusTotal / AbuseIPDB</b><p>Reputation and multi-engine context for IPs, domains, URLs and file hashes. Requires provider API credentials.</p><span className="planned-tag">SERVER KEY REQUIRED</span></article></div></section>
- <div className="module-footnote">These are passive public-data lookups, not proof that an asset is vulnerable or authorized for testing. Active assessment requires a verified engagement scope and a separately deployed scan worker. Public providers may rate-limit requests or restrict browser CORS access.</div></div>
+ <div className="panel internet-connectors"><div className="panel-heading"><div><div className="eyebrow">04 / AUTHENTICATED CLOUD ENRICHMENT</div><h3>Provider intelligence</h3></div><ShieldCheck size={18}/></div><p>Use the selected IP, domain or file hash with server-side provider credentials. Sign in is required; API keys never enter the browser.</p><button className="primary-btn run-btn" onClick={()=>void runAdvanced()} disabled={advancedBusy||!target.trim()}>{advancedBusy?<LoaderCircle className="spin-icon" size={15}/>:<Search size={15}/>} {advancedBusy?'Enriching…':'Enrich with configured providers'}</button>{advancedResult&&<pre className="intel-details internet-output">{advancedResult}</pre>}<p className="privacy-note">Providers without configured server secrets will report NOT_CONFIGURED. Configure keys as Supabase Edge Function secrets before expecting provider results.</p></div><div className="module-footnote">These are passive public-data lookups, not proof that an asset is vulnerable or authorized for testing. Active assessment requires a verified engagement scope and a separately deployed scan worker. Public providers may rate-limit requests or restrict browser CORS access.</div></div>
 }
