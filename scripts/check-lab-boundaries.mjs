@@ -38,6 +38,10 @@ const internalNetworks = new Set(
     .filter(([, network]) => network?.internal === true)
     .map(([name]) => name),
 );
+const expectedLoopbackPorts = {
+  'juice-shop': [3000],
+  webgoat: [8080, 9090],
+};
 
 requireCondition(internalNetworks.size > 0, 'At least one Docker network must be marked internal: true.');
 
@@ -51,12 +55,14 @@ for (const [name, service] of Object.entries(services)) {
     attachedNetworks.every((network) => internalNetworks.has(network)),
     `${name} is attached to a network that is not explicitly internal.`,
   );
-}
 
-const expectedLoopbackPorts = {
-  'juice-shop': [3000],
-  webgoat: [8080, 9090],
-};
+  if (!Object.hasOwn(expectedLoopbackPorts, name)) {
+    requireCondition(
+      (service.ports ?? []).length === 0,
+      `${name} is not an approved public-to-host lab target and must not publish ports.`,
+    );
+  }
+}
 
 for (const [name, expectedPorts] of Object.entries(expectedLoopbackPorts)) {
   const service = services[name];
@@ -119,12 +125,13 @@ if (kali) {
   requireCondition(mounts.length === 1, 'Kali must have exactly one host mount: the dedicated lab workspace.');
   for (const mount of mounts) {
     requireCondition(mount.type === 'bind', 'Kali workspace mount must be an explicit bind mount.');
+    const source = String(mount.source).replaceAll(/\\\\/g, '/');
     requireCondition(
-      mount.target === '/workspace' && String(mount.source).replaceAll('\\\\', '/').endsWith('/labs/workspace'),
+      mount.target === '/workspace' && source.endsWith('/labs/workspace'),
       'Kali may mount only labs/workspace at /workspace.',
     );
     requireCondition(
-      !String(mount.source).includes('docker.sock'),
+      !source.includes('docker.sock'),
       'Kali must never receive the Docker socket.',
     );
   }
