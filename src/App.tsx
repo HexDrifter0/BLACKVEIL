@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import {
-  Activity, ArrowDownRight, ArrowUpRight, Bell, BookOpen, Bug, ChevronDown,
-  ChevronRight, CircleDot, Command, Crosshair, Database, FileSearch, Fingerprint,
-  FlaskConical, Globe2, LayoutDashboard, LockKeyhole, Menu, Network, Radar,
-  Search, Settings2, Shield, ShieldAlert, ShieldCheck, Terminal, X, Zap
+  Activity, ArrowUpRight, Bell, ChevronDown, ChevronRight, CircleDot, Command,
+  Crosshair, Database, FileSearch, Fingerprint, FlaskConical, LayoutDashboard,
+  LockKeyhole, Menu, Network, Radar, Search, Settings2, Shield, ShieldAlert,
+  ShieldCheck, Terminal, X, Zap
 } from 'lucide-react'
+import Academy from './Academy'
 import './styles.css'
 
 type Profile = 'White Hat' | 'Black Hat' | 'Red Hat' | 'Blue Hat' | 'Purple Hat'
@@ -28,6 +29,7 @@ const nav = [
   { label: 'Overview', icon: LayoutDashboard },
   { label: 'Operations', icon: Crosshair },
   { label: 'Toolbox', icon: Terminal },
+  { label: 'Academy', icon: BookOpen },
   { label: 'Threat intelligence', icon: Radar },
   { label: 'Laboratories', icon: FlaskConical },
   { label: 'Devices', icon: Database }
@@ -36,13 +38,11 @@ function App() {
   const [profile, setProfile] = useState<Profile>('Purple Hat')
   const [section, setSection] = useState('Overview')
   const [query, setQuery] = useState('')
-  const [showProfiles, setShowProfiles] = useState(false)
   const [mobileNav, setMobileNav] = useState(false)
   const [activeTool, setActiveTool] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
 
   const filteredTools = useMemo(() => tools.filter(t => (t.name + t.description + t.category).toLowerCase().includes(query.toLowerCase())), [query])
-  const selectedProfile = profiles.find(p => p.name === profile)!
   const chooseSection = (label: string) => { setSection(label); setMobileNav(false); setActiveTool(null) }
 
   return <div className="app-shell">
@@ -63,7 +63,7 @@ function App() {
           <section className="profile-section"><div className="section-heading"><div><div className="eyebrow">01 / WORKING CONTEXT</div><h3>Operational profiles</h3></div><span className="muted-tag">SELECT A MODE</span></div><div className="profile-grid">{profiles.map(p => <button key={p.name} onClick={() => {setProfile(p.name);setShowProfiles(false)}} className={`profile-card ${profile === p.name ? 'profile-selected' : ''}`} style={{'--profile-color':p.color} as React.CSSProperties}><div className="profile-top"><span className="profile-code">{p.short}</span>{profile === p.name ? <span className="selected-indicator"><CircleDot size={14}/> ACTIVE</span> : <ChevronRight size={15}/>}</div><b>{p.name}</b><span>{p.description}</span></button>)}</div></section>
           <section className="stats-grid"><div className="stat-card"><div className="stat-top"><span>ACTIVE SESSIONS</span><Activity size={16}/></div><div className="stat-value">01 <small className="stat-neutral">LOCAL</small></div><div className="stat-foot">This browser session</div></div><div className="stat-card"><div className="stat-top"><span>CONNECTED DEVICES</span><Database size={16}/></div><div className="stat-value">00 <small className="stat-neutral">PAIRED</small></div><div className="stat-foot">No remote agents connected</div></div><div className="stat-card"><div className="stat-top"><span>AVAILABLE TOOLS</span><Terminal size={16}/></div><div className="stat-value">04 <small className="stat-up"><ArrowUpRight size={12}/> LOCAL</small></div><div className="stat-foot">Ready to use in this browser</div></div><div className="stat-card"><div className="stat-top"><span>SECURITY EVENTS</span><ShieldAlert size={16}/></div><div className="stat-value">00 <small className="stat-neutral">TODAY</small></div><div className="stat-foot">No events recorded yet</div></div></section>
           <section className="lower-grid"><div className="panel"><div className="panel-heading"><div><div className="eyebrow">02 / QUICK ACCESS</div><h3>Toolbox highlights</h3></div><button className="text-link" onClick={() => chooseSection('Toolbox')}>View all <ArrowUpRight size={14}/></button></div><div className="quick-tools">{tools.slice(0,3).map(t => <button className="quick-tool" key={t.name} onClick={() => {setSection('Toolbox');setActiveTool(t.name)}}><div className="tool-icon"><t.icon size={17}/></div><div><b>{t.name}</b><span>{t.description}</span></div><ChevronRight size={15}/></button>)}</div></div><div className="panel activity-panel"><div className="panel-heading"><div><div className="eyebrow">03 / AUDIT TRAIL</div><h3>Recent activity</h3></div><span className="live-label"><span/> LIVE</span></div><div className="empty-activity"><div className="empty-icon"><Activity size={20}/></div><b>All quiet on the wire</b><span>Las acciones realizadas aparecerán aquí.</span></div></div></section>
-        </> : <><div className="page-heading compact-heading"><div><div className="eyebrow">BLACKVEIL / MODULE</div><h1>{section}<span className="heading-dot">.</span></h1><p>{section === 'Toolbox' ? 'Herramientas locales de análisis y diagnóstico.' : 'Módulo preparado para la siguiente fase de integración.'}</p></div><span className="date-chip"><CircleDot size={14}/> {section === 'Toolbox' ? '4 TOOLS READY' : 'MODULE PREVIEW'}</span></div>
+        </> : section === 'Academy' ? <Academy /> : <><div className="page-heading compact-heading"><div><div className="eyebrow">BLACKVEIL / MODULE</div><h1>{section}<span className="heading-dot">.</span></h1><p>{section === 'Toolbox' ? 'Herramientas locales de análisis y diagnóstico.' : 'Módulo preparado para la siguiente fase de integración.'}</p></div><span className="date-chip"><CircleDot size={14}/> {section === 'Toolbox' ? '4 TOOLS READY' : 'MODULE PREVIEW'}</span></div>
           {section === 'Toolbox' ? <><div className="search-bar"><Search size={17}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tools, categories..." /><kbd>⌘ K</kbd></div><div className="tool-grid">{filteredTools.map(t => <button key={t.name} className="tool-card" onClick={() => setActiveTool(t.name)}><div className="tool-card-top"><div className="tool-icon large"><t.icon size={20}/></div><span className={t.status === 'READY' ? 'ready-tag' : 'planned-tag'}>{t.status}</span></div><h3>{t.name}</h3><p>{t.description}</p><div className="tool-card-foot"><span>{t.category}</span><ArrowUpRight size={15}/></div></button>)}</div></> : <div className="module-placeholder"><div className="placeholder-icon"><Shield size={28}/></div><h2>{section} module</h2><p>Este módulo se conectará a servicios reales en próximas iteraciones. No se mostrarán datos simulados como si fueran operaciones reales.</p><button className="primary-btn" onClick={() => chooseSection('Toolbox')}>Use available tools <ArrowUpRight size={15}/></button></div>}
         </>}
       </div>
