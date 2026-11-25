@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import {
   Activity, ArrowUpRight, Bell, BookOpen, ChevronDown, ChevronRight, CircleDot, Command,
-  Crosshair, Database, FileSearch, Fingerprint, FlaskConical, LayoutDashboard, Bug, Globe,
+  Crosshair, Database, FileSearch, Fingerprint, FlaskConical, LayoutDashboard, Bug, Globe, Server,
   LockKeyhole, Menu, Network, Radar, Search, Settings2, Shield, ShieldAlert, UserRound,
   ShieldCheck, Terminal, X, Zap
 } from 'lucide-react'
@@ -28,6 +28,7 @@ const tools: ToolItem[] = [
   { name: 'DNS resolver', description: 'Consultas DNS A, AAAA, MX, TXT, NS y CNAME', category: 'Network', icon: Globe, status: 'READY' },
   { name: 'RDAP lookup', description: 'Consulta registro y asignación IP/dominio', category: 'Recon', icon: Database, status: 'READY' },
   { name: 'CVE search', description: 'Busca vulnerabilidades en el catálogo NVD', category: 'Vulnerability intel', icon: Bug, status: 'READY' },
+  { name: 'HTTP headers audit', description: 'Inspecciona cabeceras HTTP expuestas por el navegador', category: 'Web security', icon: Server, status: 'READY' },
   { name: 'Hash laboratory', description: 'SHA-256 de texto y archivos en local', category: 'Forensics', icon: Fingerprint, status: 'READY' },
   { name: 'IOC extractor', description: 'Extrae IPs, dominios, URLs y hashes', category: 'Threat intel', icon: FileSearch, status: 'READY' },
   { name: 'Log analyzer', description: 'Inspección rápida de eventos y logs', category: 'Blue team', icon: Terminal, status: 'READY' },
@@ -100,13 +101,15 @@ function ToolModal({ name, onClose }: { name: string; onClose: () => void }) {
   const [input, setInput] = useState('')
   const [result, setResult] = useState('')
   const [busy, setBusy] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
   const run = async () => {
     setBusy(true); setResult('')
     try {
       if (name === 'Hash laboratory') {
-        const bytes = new TextEncoder().encode(input)
+        const bytes = file ? await file.arrayBuffer() : new TextEncoder().encode(input)
         const digest = await crypto.subtle.digest('SHA-256', bytes)
-        setResult(Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join(''))
+        const hex = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('')
+        setResult('SHA-256: ' + hex + '\nSource: ' + (file ? file.name + ' (' + file.size + ' bytes)' : 'text input'))
       } else if (name === 'IOC extractor') {
         const patterns = [
           ['IPv4', /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g],
@@ -175,6 +178,13 @@ function ToolModal({ name, onClose }: { name: string; onClose: () => void }) {
       } else if (name === 'URL inspector') {
         const url = new URL(input.trim())
         setResult(`Protocol: ${url.protocol}\nHostname: ${url.hostname}\nPort: ${url.port || '(default)'}\nPath: ${url.pathname}\nQuery: ${url.search || '(none)'}\nFragment: ${url.hash || '(none)'}\nUsername present: ${Boolean(url.username)}\nPassword present: ${Boolean(url.password)}\n\nParameters:\n${[...url.searchParams.entries()].map(([k,v]) => `${k} = ${v}`).join('\n') || '(none)'}`)
+      } else if (name === 'HTTP headers audit') {
+        const target = new URL(input.trim())
+        if (!['http:','https:'].includes(target.protocol) || target.username || target.password) throw new Error('Introduce una URL HTTP(S) sin credenciales embebidas.')
+        const response = await fetch(target.toString(), { method: 'GET', mode: 'cors', credentials: 'omit', redirect: 'follow' })
+        const names = ['content-security-policy','strict-transport-security','x-content-type-options','referrer-policy','permissions-policy','cross-origin-opener-policy','cross-origin-resource-policy']
+        const lines = names.map(h => h.toUpperCase() + ': ' + (response.headers.get(h) || 'NOT VISIBLE / NOT PRESENT'))
+        setResult('Final URL: ' + response.url + '\nHTTP status: ' + response.status + '\nRedirected: ' + response.redirected + '\n\n' + lines.join('\n') + '\n\nBrowser CORS rules may hide response headers. NOT VISIBLE does not prove the server omitted a header.')
       } else if (name === 'Regex workbench') {
         const [pattern, flags = '', ...body] = input.split('\n')
         if (!pattern || !body.length) throw new Error('Primera línea: patrón. Segunda línea: flags opcionales tras | (ej. /gi). Resto: texto.')
@@ -186,7 +196,7 @@ function ToolModal({ name, onClose }: { name: string; onClose: () => void }) {
     } catch (e) { setResult(e instanceof Error ? e.message : 'Error inesperado.') }
     finally { setBusy(false) }
   }
-  const ready = ['Network mapper','DNS resolver','RDAP lookup','CVE search','Hash laboratory','IOC extractor','Log analyzer','Base64 workbench','JWT inspector','Password auditor','URL inspector','Regex workbench'].includes(name)
-  return <div className="modal-backdrop" onMouseDown={e => {if(e.target === e.currentTarget) onClose()}}><div className="tool-modal"><div className="modal-head"><div><div className="eyebrow">LOCAL TOOL / BROWSER EXECUTION</div><h2>{name}</h2></div><button className="icon-btn" onClick={onClose}><X size={18}/></button></div>{ready ? <><label className="field-label">{name === 'Network mapper' ? 'IPv4 / CIDR' : name === 'DNS resolver' ? 'DOMAIN AND DNS RECORD TYPE (e.g. example.com MX)' : name === 'RDAP lookup' ? 'IP ADDRESS OR DOMAIN' : name === 'CVE search' ? 'KEYWORD / PRODUCT / VERSION' : name === 'Hash laboratory' ? 'TEXT TO HASH (SHA-256)' : name === 'IOC extractor' ? 'TEXT / INDICATORS TO INSPECT' : name === 'Log analyzer' ? 'LOG CONTENT' : name === 'Base64 workbench' ? 'FIRST LINE: ENCODE OR DECODE; NEXT LINES: TEXT' : name === 'JWT inspector' ? 'COMPACT JWT' : name === 'Password auditor' ? 'PASSWORD TO AUDIT (LOCAL ONLY)' : name === 'URL inspector' ? 'ABSOLUTE URL' : 'FIRST LINE: REGEX; SECOND LINE: FLAGS; REST: TEST TEXT'}</label><textarea value={input} onChange={e => setInput(e.target.value)} placeholder={name === 'Network mapper' ? '192.168.1.0/24' : name === 'DNS resolver' ? 'example.com A' : name === 'RDAP lookup' ? 'example.com or 8.8.8.8' : name === 'CVE search' ? 'OpenSSH 9.6' : name === 'Hash laboratory' ? 'Enter text to calculate its SHA-256 digest...' : name === 'Base64 workbench' ? 'ENCODE\nHello BLACKVEIL' : name === 'JWT inspector' ? 'eyJhbGciOi...' : name === 'Password auditor' ? 'Enter a sample password (do not use a real password).' : name === 'URL inspector' ? 'https://example.com/path?query=value' : name === 'Regex workbench' ? '^admin\n gi\nadmin\nuser\nroot' : 'Paste text to analyze...'} rows={6}/><button className="primary-btn run-btn" disabled={!input.trim() || busy} onClick={run}>{busy ? 'Processing…' : 'Run locally'} <ArrowUpRight size={15}/></button>{result && <div className="result-box"><div className="result-head">OUTPUT <button onClick={() => navigator.clipboard?.writeText(result)}>Copy</button></div><pre>{result}</pre></div>}<p className="privacy-note"><LockKeyhole size={13}/> Processing happens in this browser. Input is not uploaded.</p></> : <div className="module-placeholder"><FlaskConical size={28}/><h3>Not available yet</h3><p>This capability is not implemented. No fake scan or remote action will be executed.</p></div>}</div></div>
+  const ready = ['Network mapper','DNS resolver','RDAP lookup','CVE search','HTTP headers audit','Hash laboratory','IOC extractor','Log analyzer','Base64 workbench','JWT inspector','Password auditor','URL inspector','Regex workbench'].includes(name)
+  return <div className="modal-backdrop" onMouseDown={e => {if(e.target === e.currentTarget) onClose()}}><div className="tool-modal"><div className="modal-head"><div><div className="eyebrow">LOCAL TOOL / BROWSER EXECUTION</div><h2>{name}</h2></div><button className="icon-btn" onClick={onClose}><X size={18}/></button></div>{ready ? <><label className="field-label">{name === 'Network mapper' ? 'IPv4 / CIDR' : name === 'DNS resolver' ? 'DOMAIN AND DNS RECORD TYPE (e.g. example.com MX)' : name === 'RDAP lookup' ? 'IP ADDRESS OR DOMAIN' : name === 'CVE search' ? 'KEYWORD / PRODUCT / VERSION' : name === 'HTTP headers audit' ? 'PUBLIC HTTP(S) URL (CORS REQUIRED)' : name === 'Hash laboratory' ? 'TEXT TO HASH (SHA-256)' : name === 'IOC extractor' ? 'TEXT / INDICATORS TO INSPECT' : name === 'Log analyzer' ? 'LOG CONTENT' : name === 'Base64 workbench' ? 'FIRST LINE: ENCODE OR DECODE; NEXT LINES: TEXT' : name === 'JWT inspector' ? 'COMPACT JWT' : name === 'Password auditor' ? 'PASSWORD TO AUDIT (LOCAL ONLY)' : name === 'URL inspector' ? 'ABSOLUTE URL' : 'FIRST LINE: REGEX; SECOND LINE: FLAGS; REST: TEST TEXT'}</label><textarea value={input} onChange={e => {setInput(e.target.value);setFile(null)}} placeholder={name === 'Network mapper' ? '192.168.1.0/24' : name === 'DNS resolver' ? 'example.com A' : name === 'RDAP lookup' ? 'example.com or 8.8.8.8' : name === 'CVE search' ? 'OpenSSH 9.6' : name === 'HTTP headers audit' ? 'https://example.com' : name === 'Hash laboratory' ? 'Enter text to calculate its SHA-256 digest...' : name === 'Base64 workbench' ? 'ENCODE\nHello BLACKVEIL' : name === 'JWT inspector' ? 'eyJhbGciOi...' : name === 'Password auditor' ? 'Enter a sample password (do not use a real password).' : name === 'URL inspector' ? 'https://example.com/path?query=value' : name === 'Regex workbench' ? '^admin\n gi\nadmin\nuser\nroot' : 'Paste text to analyze...'} rows={6}/>{name === 'Hash laboratory' && <label className="file-hash-input">Or hash a file locally <input type="file" onChange={e => setFile(e.target.files?.[0] ?? null)}/></label>}<button className="primary-btn run-btn" disabled={(!input.trim() && !file) || busy} onClick={run}>{busy ? 'Processing…' : 'Run locally'} <ArrowUpRight size={15}/></button>{result && <div className="result-box"><div className="result-head">OUTPUT <button onClick={() => navigator.clipboard?.writeText(result)}>Copy</button></div><pre>{result}</pre></div>}<p className="privacy-note"><LockKeyhole size={13}/> Processing happens in this browser. Input is not uploaded.</p></> : <div className="module-placeholder"><FlaskConical size={28}/><h3>Not available yet</h3><p>This capability is not implemented. No fake scan or remote action will be executed.</p></div>}</div></div>
 }
 export default App
