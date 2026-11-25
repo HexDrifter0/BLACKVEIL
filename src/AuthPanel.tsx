@@ -28,9 +28,14 @@ export default function AuthPanel({ onBack, onAuthenticated }: Props) {
   const oauth = async (provider: 'google'|'apple'|'github') => {
     if (!supabase) return
     setBusy(provider); setError(''); setMessage('')
-    const redirectTo = window.location.origin + import.meta.env.BASE_URL
-    const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } })
-    if (error) { setError(error.message); setBusy('') }
+    try {
+      const redirectTo = window.location.origin + import.meta.env.BASE_URL
+      const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } })
+      if (error) throw error
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo iniciar el flujo OAuth.')
+      setBusy('')
+    }
   }
 
   const openaiAuthUrl = import.meta.env.VITE_OPENAI_AUTH_URL
@@ -44,7 +49,7 @@ export default function AuthPanel({ onBack, onAuthenticated }: Props) {
       <h1>{mode === 'signin' ? 'Welcome back.' : mode === 'signup' ? 'Create your account.' : 'Recover access.'}</h1>
       <p className="auth-subtitle">Your workspace, operations and learning progress under one account.</p>
 
-      {!supabase && <div className="auth-warning"><b>Authentication backend not configured</b><span>Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the deployment environment. No demo account or simulated login is provided.</span></div>}
+      {!supabase && <div className="auth-warning"><b>Authentication backend not configured</b><span>Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY) in the deployment environment. No demo account or simulated login is provided.</span></div>}
 
       <div className="oauth-grid">
         <button disabled={!supabase || !!busy} onClick={() => oauth('google')}><Chrome size={17}/> Google</button>
