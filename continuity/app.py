@@ -160,8 +160,32 @@ async def dispatch_handoff(project: str, state: ProjectState, checkpoint: dict[s
     means the predecessor remains authoritative and work is not duplicated.
     """
     pc = project_config(project)
-    if pc["provider"] != "webhook" or not pc["webhook_url"] or not pc["webhook_token"]:
-        return HandoffAck(accepted=False, detail="Execution webhook not configured; handoff queued.")
+    # Hybrid mode: OpenAI compacts the checkpoint for BLACKVEIL; the project's
+    # authenticated execution gateway creates the actual successor worker session.
+    if pc["provider"] == "openai":
+        if not pc["api_key"] or not pc["model"]:
+            return HandoffAck(accepted=False, detail="OpenAI model/key not configured; handoff queued.")
+        async with httpx.AsyncClient(timeout=45) as client:
+            compact = await client.post(
+                "https://api.openai.com/v1/responses",
+                headers={"Authorization": f"Bearer {pc['api_key']}", "Content-Type": "application/json"},
+                json={
+                    "model": pc["model"],
+                    "instructions": (
+                        "Create a lossless operational handoff summary for a software engineering agent. "
+                        "Preserve repository, branch, commit, completed work, pending task, acceptance criteria, "
+                        "changed files, test evidence, blockers and next safe action. Never invent progress. "
+                        "Return concise structured Markdown."
+                    ),
+                    "input": json.dumps(checkpoint, ensure_ascii=False),
+                },
+            )
+            compact.raise_for_status()
+            compact_data = compact.json()
+            checkpoint["handoff_context"] = compact_data.get("output_text", "")
+            checkpoint["openai_response_id"] = compact_data.get("id", "")
+    if not pc["webhook_url"] or not pc["webhook_token"]:
+        return HandoffAck(accepted=False, detail="Project execution webhook not configured; handoff queued.")
     idem = hashlib.sha256(f"{project}:{state.active_session_id}:{json.dumps(checkpoint, sort_keys=True)}".encode()).hexdigest()
     payload = {
         "event": "continuity.handoff",
@@ -196,7 +220,7 @@ async def supervise_once() -> None:
                 db.commit()
                 record(db, project, "initialized_waiting_for_agent", {"provider": pc["provider"]})
                 continue
-            if state.status in ("handoff_pending", "approval_required", "blocked"):
+            if state.status in ("approval_required", "blocked"):
                 continue
             if state.context_percent >= cfg.context_checkpoint_percent and state.active_session_id:
                 checkpoint = json.loads(state.checkpoint_json or "{}")
@@ -305,7 +329,8 @@ async def heartbeat(project: str, payload: HeartbeatIn):
             state = ProjectState(project=project, repository=pc["repository"], provider=pc["provider"])
             db.add(state)
         state.active_session_id = payload.session_id
-        state.status = payload.status
+        # 75% starts a checkpoint; 80% is a hard stop until handoff succeeds.
+        state.status = "handoff_pending" if payload.context_percent >= cfg.context_checkpoint_percent else payload.status
         state.context_percent = payload.context_percent
         state.last_heartbeat = datetime.now(timezone.utc)
         state.updated_at = datetime.now(timezone.utc)
@@ -315,7 +340,11 @@ async def heartbeat(project: str, payload: HeartbeatIn):
             "session_id": payload.session_id, "context_percent": payload.context_percent,
             "branch": payload.branch, "commit_sha": payload.commit_sha,
         })
-        return {"accepted": True, "checkpoint_at_percent": cfg.context_checkpoint_percent,
+        action = "pause_and_wait_for_handoff" if payload.context_percent >= cfg.context_hard_limit_percent else (
+            "checkpoint_due" if payload.context_percent >= cfg.context_checkpoint_percent else "continue"
+        )
+        return {"accepted": True, "action": action,
+                "checkpoint_at_percent": cfg.context_checkpoint_percent,
                 "hard_limit_percent": cfg.context_hard_limit_percent}
     finally:
         db.close()
