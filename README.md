@@ -58,3 +58,7 @@ The private completion certificate is planned at **€2.00 EUR**. Real payment i
 ## Accounts and profiles
 
 The application now includes Supabase Auth client flows for email/password, Google, Apple and GitHub, plus an operator profile stored in a row-level-security-protected `profiles` table. Real sign-in requires a dedicated Supabase project, the profile migration, enabled provider credentials in the Supabase dashboard and the two public build variables configured as GitHub Actions secrets. The UI does not provide simulated authentication. Sign in with ChatGPT is exposed only after an OpenAI-issued client and a secure backend start/callback flow are registered; see `AUTH_SETUP.md`.
+
+## Backend and cloud workspace
+
+BLACKVEIL uses a dedicated Supabase project for account profiles, authorized engagement records, IOC storage and audit events. See [BACKEND_SETUP.md](./BACKEND_SETUP.md) for authentication/provider configuration, database security and deployment boundaries. A public-key environment template is available in [`.env.example`](./.env.example).
