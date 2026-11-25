@@ -23,17 +23,17 @@ export default function InternetRecon(){
    if(!value)throw new Error('Introduce un dominio, IP o producto.')
    let url=''
    if(kind==='dns'){
-    const domain=value.replace(/^https?:\\/\\//i,'').split('/')[0].split(':')[0]
+    const domain=value.replace(/^https?:\/\//i,'').split('/')[0].split(':')[0]
     if(!/^(?=.{1,253}$)[a-z0-9.-]+$/i.test(domain))throw new Error('Introduce un nombre de dominio válido, sin ruta.')
     url='https://cloudflare-dns.com/dns-query?name='+encodeURIComponent(domain)+'&type='+record
    }else if(kind==='rdap'){
-    const ip=/^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(value)
-    const domain=/^(?=.{1,253}$)[a-z0-9.-]+\\.[a-z]{2,}$/i.test(value)
+    const ip=/^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)
+    const domain=/^(?=.{1,253}$)[a-z0-9.-]+\.[a-z]{2,}$/i.test(value)
     if(!ip&&!domain)throw new Error('RDAP necesita una dirección IPv4 o un dominio.')
     url='https://rdap.org/'+(ip?'ip/':'domain/')+encodeURIComponent(value)
    }else if(kind==='certificates'){
-    const domain=value.replace(/^\\*\\./,'').replace(/^https?:\\/\\//i,'').split('/')[0]
-    if(!/^(?=.{1,253}$)[a-z0-9.-]+\\.[a-z]{2,}$/i.test(domain))throw new Error('Introduce un dominio público válido.')
+    const domain=value.replace(/^\*\./,'').replace(/^https?:\/\//i,'').split('/')[0]
+    if(!/^(?=.{1,253}$)[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain))throw new Error('Introduce un dominio público válido.')
     url='https://crt.sh/?q=%25.'+encodeURIComponent(domain)+'&output=json'
    }else{
     if(value.length<2)throw new Error('Introduce al menos dos caracteres.')
@@ -45,17 +45,17 @@ export default function InternetRecon(){
    let formatted=''
    if(kind==='dns'){
     const answers=data.Answer||[]
-    formatted=['Resolver: Cloudflare DNS-over-HTTPS','Query: '+value+' '+record,'Status: '+(data.Status===0?'NOERROR':'DNS status '+data.Status),'Answers: '+answers.length,'',...answers.map((a:any)=>a.name+' TTL='+a.TTL+' '+a.data)].join('\\n')
-    if(!answers.length)formatted+='\\nNo records returned. This does not necessarily mean the domain is unavailable.'
+    formatted=['Resolver: Cloudflare DNS-over-HTTPS','Query: '+value+' '+record,'Status: '+(data.Status===0?'NOERROR':'DNS status '+data.Status),'Answers: '+answers.length,'',...answers.map((a:any)=>a.name+' TTL='+a.TTL+' '+a.data)].join('\n')
+    if(!answers.length)formatted+='\nNo records returned. This does not necessarily mean the domain is unavailable.'
    }else if(kind==='rdap'){
     formatted=JSON.stringify({objectClassName:data.objectClassName,handle:data.handle,name:data.name,ldhName:data.ldhName,country:data.country,startAddress:data.startAddress,endAddress:data.endAddress,status:data.status,events:data.events,nameservers:data.nameservers,entities:data.entities?.map((e:any)=>({roles:e.roles,vcardArray:e.vcardArray}))},null,2)
    }else if(kind==='certificates'){
     const rows=Array.isArray(data)?data:[]
-    formatted='Certificate Transparency results: '+rows.length+'\\n\\n'+rows.slice(0,100).map((x:any)=>[x.common_name,x.name_value,'Issuer: '+x.issuer_name,'Not before: '+x.not_before,'Not after: '+x.not_after].filter(Boolean).join('\\n')).join('\\n\\n')
+    formatted='Certificate Transparency results: '+rows.length+'\n\n'+rows.slice(0,100).map((x:any)=>[x.common_name,x.name_value,'Issuer: '+x.issuer_name,'Not before: '+x.not_before,'Not after: '+x.not_after].filter(Boolean).join('\n')).join('\n\n')
     if(!rows.length)formatted='No matching certificate entries returned.'
    }else{
     const rows=data.vulnerabilities||[]
-    formatted='NVD total results: '+(data.totalResults??rows.length)+'\\nReturned: '+rows.length+'\\n\\n'+rows.map((x:any)=>{const c=x.cve;const desc=c.descriptions?.find((d:any)=>d.lang==='en')?.value||'No English description';const metric=c.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore??c.metrics?.cvssMetricV30?.[0]?.cvssData?.baseScore??c.metrics?.cvssMetricV2?.[0]?.cvssData?.baseScore??'N/A';return c.id+' | CVSS '+metric+'\\n'+desc.slice(0,700)}).join('\\n\\n')||'No matching CVEs found.'
+    formatted='NVD total results: '+(data.totalResults??rows.length)+'\nReturned: '+rows.length+'\n\n'+rows.map((x:any)=>{const c=x.cve;const desc=c.descriptions?.find((d:any)=>d.lang==='en')?.value||'No English description';const metric=c.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore??c.metrics?.cvssMetricV30?.[0]?.cvssData?.baseScore??c.metrics?.cvssMetricV2?.[0]?.cvssData?.baseScore??'N/A';return c.id+' | CVSS '+metric+'\n'+desc.slice(0,700)}).join('\n\n')||'No matching CVEs found.'
    }
    setResult(formatted);setLast(new Date().toLocaleString())
   }catch(e){setError(e instanceof Error?e.message:'Unknown lookup error')}finally{setBusy(false)}
