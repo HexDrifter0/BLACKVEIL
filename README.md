@@ -38,7 +38,7 @@ See [SECURITY.md](./SECURITY.md) for the security model.
 BLACKVEIL is organized around operational work, with the Academy as a supporting learning path:
 
 - **Overview** — workspace status and quick access.
-- **Operations** — engagement planning, scope definition, notes and audit trail (implementation in progress).
+- **Operations** — local engagement register with target, explicit authorization confirmation, scope boundaries, timestamps and saved records. It documents work; it does not launch scans.
 - **Toolbox** — local-first utilities for network calculations, hashing, IOC extraction, log triage, Base64, JWT inspection, password-strength estimation, URL parsing and regular-expression testing.
 - **Threat intelligence** — IOC enrichment, normalization, tagging and case context (planned integrations must be clearly labeled until connected).
 - **Laboratories** — guided, isolated exercises and repeatable practice environments.
