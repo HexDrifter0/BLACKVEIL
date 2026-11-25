@@ -32,7 +32,7 @@ Copy `.env.example` to `.env.local` and fill in the Supabase project URL and pub
 - Secrets never belong in frontend source control. Never expose Supabase service-role keys in a browser client.
 - Training exercises should run in isolated, disposable environments.
 
-See [SECURITY.md](./SECURITY.md) for the security model.
+See [SECURITY.md](./SECURITY.md) for the security model. For account setup, provider callbacks, OAuth configuration and required deployment secrets, see [AUTH_SETUP.md](./AUTH_SETUP.md).
 
 ## Platform modules
 BLACKVEIL is organized around operational work, with the Academy as a supporting learning path:
@@ -40,9 +40,9 @@ BLACKVEIL is organized around operational work, with the Academy as a supporting
 - **Overview** — workspace status and quick access.
 - **Operations** — local engagement register with target, explicit authorization confirmation, scope boundaries, timestamps and saved records. It documents work; it does not launch scans.
 - **Toolbox** — local-first utilities for network calculations, hashing, IOC extraction, log triage, Base64, JWT inspection, password-strength estimation, URL parsing and regular-expression testing.
-- **Threat intelligence** — IOC enrichment, normalization, tagging and case context (planned integrations must be clearly labeled until connected).
-- **Laboratories** — guided, isolated exercises and repeatable practice environments.
-- **Devices** — consent-based agent pairing for capabilities that cannot safely run in a browser.
+- **Threat intelligence** — IOC extraction, a persistent local indicator register and on-demand RDAP context for IPs/domains. Reputation feeds require provider API credentials.
+- **Laboratories** — interactive browser exercises with checkpoints and saved local progress; these are educational simulations, not isolated containers.
+- **Devices** — agent control-plane requirements and status; real endpoint pairing is unavailable until the Linux/Windows agents and backend are deployed.
 - **Academy** — structured courses that teach the technologies and security concepts used by the operational modules.
 
 ### Academy curriculum
@@ -52,3 +52,8 @@ The Academy currently contains **21 courses** across web development, programmin
 Browser-only utilities must disclose their local processing limits. Network discovery, packet capture, endpoint inspection, vulnerability scanning and shell execution require a separately installed, permissioned agent or an isolated lab runtime; a website must never pretend that a browser-only action performed those tasks. Planned modules are not presented as operational capabilities.
 
 The private completion certificate is planned at **€2.00 EUR**. Real payment is not enabled until Stripe Checkout, Supabase Auth, server-side progress verification and signed webhooks are configured. See [PAYMENTS.md](./PAYMENTS.md) and the SQL migration under `supabase/migrations`. The certificate is not an official academic qualification.
+
+
+## Accounts and profiles
+
+The application now includes Supabase Auth client flows for email/password, Google, Apple and GitHub, plus an operator profile stored in a row-level-security-protected `profiles` table. Real sign-in requires a dedicated Supabase project, the profile migration, enabled provider credentials in the Supabase dashboard and the two public build variables configured as GitHub Actions secrets. The UI does not provide simulated authentication. Sign in with ChatGPT is exposed only after an OpenAI-issued client and a secure backend start/callback flow are registered; see `AUTH_SETUP.md`.
