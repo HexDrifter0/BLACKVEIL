@@ -19,3 +19,5 @@ jobs:
       - run: npm run build
       - name: Validate local lab Compose configuration
         run: docker compose -f labs/docker-compose.yml config --quiet
+      - name: Enforce local lab isolation boundaries
+        run: npm run check:lab
