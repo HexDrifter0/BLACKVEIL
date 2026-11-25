@@ -29,6 +29,8 @@ services:
     container_name: blackveil-kali
     profiles: ["tools"]
     init: true
+    cap_drop:
+      - ALL
     cap_add:
       - NET_RAW
     security_opt:
