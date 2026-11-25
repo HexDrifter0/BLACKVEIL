@@ -28,7 +28,7 @@ jobs:
           } catch {
             const message = 'Dependency audit report could not be parsed. Check npm/network output.'
             console.log(message)
-            appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Dependency audit\\n\\n${message}\\n`)
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Dependency audit\n\n${message}\n`)
             process.exit(0)
           }
 
@@ -52,7 +52,7 @@ jobs:
           }
 
           if (packages.length === 0) lines.push('No vulnerable packages were reported.')
-          const summary = lines.join('\\n') + '\\n'
+          const summary = lines.join('\n') + '\n'
           console.log(summary)
           appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary)
           NODE
