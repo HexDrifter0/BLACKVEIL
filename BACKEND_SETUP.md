@@ -8,7 +8,7 @@ BLACKVEIL is connected to its dedicated Supabase project in the Frankfurt region
 - API URL: `https://robmzfodqbijekqxrhyd.supabase.co`
 - Browser key: Supabase publishable key (public by design; never use a secret/service-role key in Vite)
 
-The frontend has a public publishable-key fallback so GitHub Pages can connect without a private build secret. You may override it with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in GitHub Actions secrets. The database must remain protected by RLS.
+The frontend has a public publishable-key fallback so GitHub Pages can connect without a private build secret. You may override it with `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (the legacy `VITE_SUPABASE_ANON_KEY` name is also accepted) in GitHub Actions secrets. The database must remain protected by RLS.
 
 ## Authentication configuration
 
