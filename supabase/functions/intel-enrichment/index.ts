@@ -75,9 +75,10 @@ Deno.serve(async (req: Request) => {
       const d = await requestJson("https://api.shodan.io/shodan/host/" + encodeURIComponent(indicator) + "?key=" + encodeURIComponent(key));
       return { ip_str: d.ip_str, hostnames: d.hostnames, ports: d.ports, org: d.org, isp: d.isp, country_name: d.country_name, last_update: d.last_update, vulns: d.vulns };
     });
-    await run("Censys", ["CENSYS_API_ID", "CENSYS_API_SECRET"], async () => {
-      const token = btoa(Deno.env.get("CENSYS_API_ID")! + ":" + Deno.env.get("CENSYS_API_SECRET")!);
-      const d = await requestJson("https://api.platform.censys.io/v3/global/asset/host/" + encodeURIComponent(indicator), { headers: { Authorization: "Basic " + token } });
+    await run("Censys", ["CENSYS_API_TOKEN"], async () => {
+      const d = await requestJson("https://api.platform.censys.io/v3/global/asset/host/" + encodeURIComponent(indicator), {
+        headers: { Authorization: "Bearer " + Deno.env.get("CENSYS_API_TOKEN")!, Accept: "application/vnd.censys.api.v3.host.v1+json" }
+      });
       return d;
     });
     await run("AbuseIPDB", ["ABUSEIPDB_API_KEY"], async () => {
