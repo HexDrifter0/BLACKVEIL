@@ -15,7 +15,7 @@ function reply(status: number, body: unknown) {
 function classify(value: string): "ip" | "domain" | "hash" | null {
   const ip = value.match(/^(\d{1,3}\.){3}\d{1,3}$/);
   if (ip && value.split(".").every(part => Number(part) >= 0 && Number(part) <= 255)) return "ip";
-  if (/^[a-f0-9]{32}([a-f0-9]{8})?([a-f0-9]{24})?$/i.test(value) && [32,40,64,128].includes(value.length)) return "hash";
+  if (/^(?:[a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64})$/i.test(value)) return "hash";
   if (value.length <= 253 && /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(value)) return "domain";
   return null;
 }
@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
   try { payload = await req.json(); } catch { return reply(400, { error: "invalid_json" }); }
   const indicator = typeof payload.indicator === "string" ? payload.indicator.trim().toLowerCase() : "";
   const kind = classify(indicator);
-  if (!kind) return reply(400, { error: "invalid_indicator", accepted: "IPv4, public domain, MD5/SHA1/SHA256/SHA512 hash" });
+  if (!kind) return reply(400, { error: "invalid_indicator", accepted: "IPv4, public domain, MD5/SHA1/SHA256 hash" });
 
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!serviceKey) return reply(503, { error: "server_configuration_missing" });
