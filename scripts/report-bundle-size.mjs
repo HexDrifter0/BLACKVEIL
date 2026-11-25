@@ -30,12 +30,17 @@ if (!entry) {
 }
 
 const totalBytes = chunks.reduce((sum, chunk) => sum + chunk.bytes, 0)
+const expectedLazyModules = ['Academy', 'Operations', 'AuthPanel', 'Profile', 'MissionModules', 'InternetRecon', 'AuditFeed']
+const missingLazyModules = expectedLazyModules.filter(
+  moduleName => !chunks.some(chunk => chunk.name.startsWith(`${moduleName}-`)),
+)
 const threshold = 500_000
 const lines = [
   '## JavaScript bundle report',
   '',
   `Initial entry: **${entry.name}** — ${(entry.bytes / 1024).toFixed(2)} KiB minified, ${(entry.gzip / 1024).toFixed(2)} KiB gzip.`,
   `All JavaScript chunks: ${chunks.length}; combined ${(totalBytes / 1024).toFixed(2)} KiB minified.`,
+  `Lazy-loaded modules: ${expectedLazyModules.length - missingLazyModules.length}/${expectedLazyModules.length} present.`,
   '',
   '| Chunk | Minified KiB | Gzip KiB |',
   '|---|---:|---:|',
@@ -48,5 +53,9 @@ console.log(report)
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, report)
 if (entry.bytes > threshold) {
   console.error('[bundle-report] Initial entry exceeds 500 kB.')
+  process.exitCode = 1
+}
+if (missingLazyModules.length > 0) {
+  console.error('[bundle-report] Expected lazy chunks missing: ' + missingLazyModules.join(', '))
   process.exitCode = 1
 }
