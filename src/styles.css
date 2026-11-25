@@ -17,3 +17,7 @@
 @media(max-width:900px){.internet-grid{grid-template-columns:1fr}.internet-results{min-height:300px}.connector-grid{grid-template-columns:1fr}}
 
 .quick-tool time{display:flex;align-items:center;gap:5px;font:8px 'DM Mono';color:#78889a;white-space:nowrap}
+
+/* Local cyber range kit */
+.lab-kit-panel{padding:18px;margin-top:14px}.lab-kit-panel>p{font-size:10px;line-height:1.75;color:#8998a8}.lab-kit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0}.lab-kit-grid article{display:flex;flex-direction:column;gap:6px;min-width:0;padding:12px;border:1px solid #293845;border-radius:7px;background:#0a1119}.lab-kit-grid article span,.lab-kit-command span{font:8px 'DM Mono';letter-spacing:.8px;color:#82c7a4}.lab-kit-grid article b{font-size:11px;color:#d6e1e9}.lab-kit-grid article code,.lab-kit-command code{font:9px 'DM Mono';color:#aabac8;overflow-wrap:anywhere}.lab-kit-command{display:flex;flex-direction:column;gap:8px;border:1px solid #2b3b47;background:#080f16;border-radius:7px;padding:12px}.lab-kit-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:13px}.lab-kit-actions a{text-decoration:none}.lab-kit-actions>span{font-size:9px;color:#8191a1}
+@media(max-width:600px){.lab-kit-grid{grid-template-columns:1fr}.lab-kit-actions{align-items:flex-start;flex-direction:column}}
