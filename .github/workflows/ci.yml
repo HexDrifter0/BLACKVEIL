@@ -15,6 +15,54 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Capture dependency audit details
+        if: always()
+        run: |
+          npm audit --json > npm-audit.json || true
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs'
+
+          let report
+          try {
+            report = JSON.parse(readFileSync('npm-audit.json', 'utf8'))
+          } catch {
+            const message = 'Dependency audit report could not be parsed. Check npm/network output.'
+            console.log(message)
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Dependency audit\\n\\n${message}\\n`)
+            process.exit(0)
+          }
+
+          const counts = report.metadata?.vulnerabilities ?? {}
+          const packages = Object.entries(report.vulnerabilities ?? {})
+          const lines = [
+            '## Dependency audit',
+            '',
+            `Totals: ${counts.info ?? 0} info, ${counts.low ?? 0} low, ${counts.moderate ?? 0} moderate, ${counts.high ?? 0} high, ${counts.critical ?? 0} critical.`,
+            ''
+          ]
+
+          for (const [name, item] of packages) {
+            const via = (item.via ?? []).map(entry =>
+              typeof entry === 'string' ? entry : `${entry.title ?? entry.name ?? 'Advisory'} (${entry.url ?? 'URL unavailable'})`
+            )
+            lines.push(
+              `- **${name}** — ${item.severity}; direct: ${item.isDirect}; range: ${item.range}; fix: ${JSON.stringify(item.fixAvailable ?? false)}`,
+              ...via.map(entry => `  - ${entry}`)
+            )
+          }
+
+          if (packages.length === 0) lines.push('No vulnerable packages were reported.')
+          const summary = lines.join('\\n') + '\\n'
+          console.log(summary)
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary)
+          NODE
+      - name: Upload dependency audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-audit.json
+          retention-days: 7
       - run: npm run typecheck
       - run: npm run build
       - name: Validate local lab Compose configuration
