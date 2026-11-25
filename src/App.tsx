@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import {
   Activity, ArrowUpRight, Bell, BookOpen, ChevronDown, ChevronRight, CircleDot, Command,
-  Crosshair, Database, FileSearch, Fingerprint, FlaskConical, LayoutDashboard,
+  Crosshair, Database, FileSearch, Fingerprint, FlaskConical, LayoutDashboard, Bug, Globe,
   LockKeyhole, Menu, Network, Radar, Search, Settings2, Shield, ShieldAlert, UserRound,
   ShieldCheck, Terminal, X, Zap
 } from 'lucide-react'
@@ -25,6 +25,9 @@ const profiles: { name: Profile; short: string; description: string; color: stri
 ]
 const tools: ToolItem[] = [
   { name: 'Network mapper', description: 'Calculadora IPv4, CIDR y rangos de red', category: 'Network', icon: Network, status: 'READY' },
+  { name: 'DNS resolver', description: 'Consultas DNS A, AAAA, MX, TXT, NS y CNAME', category: 'Network', icon: Globe, status: 'READY' },
+  { name: 'RDAP lookup', description: 'Consulta registro y asignación IP/dominio', category: 'Recon', icon: Database, status: 'READY' },
+  { name: 'CVE search', description: 'Busca vulnerabilidades en el catálogo NVD', category: 'Vulnerability intel', icon: Bug, status: 'READY' },
   { name: 'Hash laboratory', description: 'SHA-256 de texto y archivos en local', category: 'Forensics', icon: Fingerprint, status: 'READY' },
   { name: 'IOC extractor', description: 'Extrae IPs, dominios, URLs y hashes', category: 'Threat intel', icon: FileSearch, status: 'READY' },
   { name: 'Log analyzer', description: 'Inspección rápida de eventos y logs', category: 'Blue team', icon: Terminal, status: 'READY' },
@@ -123,6 +126,29 @@ function ToolModal({ name, onClose }: { name: string; onClose: () => void }) {
         const network = (ip & mask) >>> 0; const broadcast = (network | (~mask >>> 0)) >>> 0
         const fmt = (n:number) => [n>>>24,(n>>>16)&255,(n>>>8)&255,n&255].join('.')
         setResult(`Network: ${fmt(network)}\nNetmask: ${fmt(mask)}\nBroadcast: ${fmt(broadcast)}\nTotal addresses: ${2**(32-prefix)}\nUsable hosts: ${prefix >= 31 ? 2**(32-prefix) : Math.max(0,2**(32-prefix)-2)}`)
+      } else if (name === 'DNS resolver') {
+        const [domain, requestedType = 'A'] = input.trim().split(/\\s+/)
+        const recordType = requestedType.toUpperCase()
+        if (!/^[a-z0-9.-]+$/i.test(domain) || !['A','AAAA','MX','TXT','NS','CNAME'].includes(recordType)) throw new Error('Formato: example.com A (tipos: A, AAAA, MX, TXT, NS, CNAME).')
+        const response = await fetch('https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(domain) + '&type=' + recordType, { headers: { accept: 'application/dns-json' } })
+        if (!response.ok) throw new Error('DNS-over-HTTPS HTTP ' + response.status)
+        const data = await response.json()
+        setResult('Query: ' + domain + ' ' + recordType + '\\nStatus: ' + (data.Status === 0 ? 'NOERROR' : 'DNS status ' + data.Status) + '\\n\\n' + ((data.Answer || []).map((a:any) => a.name + '  TTL=' + a.TTL + '  ' + a.data).join('\\n') || 'No answers returned.'))
+      } else if (name === 'RDAP lookup') {
+        const value = input.trim()
+        const isIp = /^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(value)
+        if (!isIp && !/^(?=.{1,253}$)[a-z0-9.-]+\\.[a-z]{2,}$/i.test(value)) throw new Error('Introduce una dirección IPv4 o un dominio válido.')
+        const response = await fetch('https://rdap.org/' + (isIp ? 'ip/' : 'domain/') + encodeURIComponent(value), { headers: { accept: 'application/rdap+json, application/json' } })
+        if (!response.ok) throw new Error('RDAP HTTP ' + response.status)
+        const data = await response.json()
+        setResult(['Object: ' + (data.name || data.handle || value), 'Handle: ' + (data.handle || 'not supplied'), 'Country: ' + (data.country || 'not supplied'), 'Type: ' + (data.type || 'not supplied'), 'Status: ' + ((data.status || []).join(', ') || 'not supplied'), 'Events: ' + ((data.events || []).map((e:any) => e.eventAction + ': ' + e.eventDate).join(' | ') || 'not supplied'), 'Nameservers: ' + ((data.nameservers || []).map((n:any) => n.ldhName).join(', ') || 'not supplied')].join('\\n'))
+      } else if (name === 'CVE search') {
+        if (input.trim().length < 2) throw new Error('Introduce al menos dos caracteres para buscar.')
+        const response = await fetch('https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch=' + encodeURIComponent(input.trim()) + '&resultsPerPage=10')
+        if (!response.ok) throw new Error('NVD API HTTP ' + response.status + '. Puede existir un límite temporal de consultas.')
+        const data = await response.json()
+        const entries = data.vulnerabilities || []
+        setResult('Results: ' + (data.totalResults ?? entries.length) + '\\n\\n' + (entries.map((entry:any) => { const c=entry.cve; const desc=c.descriptions?.find((d:any)=>d.lang==='en')?.value || 'No English description'; const score=c.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore ?? c.metrics?.cvssMetricV30?.[0]?.cvssData?.baseScore ?? c.metrics?.cvssMetricV2?.[0]?.cvssData?.baseScore ?? 'N/A'; return c.id + ' | CVSS ' + score + '\\n' + desc.slice(0,360) }).join('\\n\\n') || 'No matching CVEs found.'))
       } else if (name === 'Log analyzer') {
         const lines = input.split(/\r?\n/).filter(Boolean)
         const errors = lines.filter(l => /error|critical|fatal|denied|failed/i.test(l))
@@ -160,7 +186,7 @@ function ToolModal({ name, onClose }: { name: string; onClose: () => void }) {
     } catch (e) { setResult(e instanceof Error ? e.message : 'Error inesperado.') }
     finally { setBusy(false) }
   }
-  const ready = ['Network mapper','Hash laboratory','IOC extractor','Log analyzer','Base64 workbench','JWT inspector','Password auditor','URL inspector','Regex workbench'].includes(name)
-  return <div className="modal-backdrop" onMouseDown={e => {if(e.target === e.currentTarget) onClose()}}><div className="tool-modal"><div className="modal-head"><div><div className="eyebrow">LOCAL TOOL / BROWSER EXECUTION</div><h2>{name}</h2></div><button className="icon-btn" onClick={onClose}><X size={18}/></button></div>{ready ? <><label className="field-label">{name === 'Network mapper' ? 'IPv4 / CIDR' : name === 'Hash laboratory' ? 'TEXT TO HASH (SHA-256)' : name === 'IOC extractor' ? 'TEXT / INDICATORS TO INSPECT' : name === 'Log analyzer' ? 'LOG CONTENT' : name === 'Base64 workbench' ? 'FIRST LINE: ENCODE OR DECODE; NEXT LINES: TEXT' : name === 'JWT inspector' ? 'COMPACT JWT' : name === 'Password auditor' ? 'PASSWORD TO AUDIT (LOCAL ONLY)' : name === 'URL inspector' ? 'ABSOLUTE URL' : 'FIRST LINE: REGEX; SECOND LINE: FLAGS; REST: TEST TEXT'}</label><textarea value={input} onChange={e => setInput(e.target.value)} placeholder={name === 'Network mapper' ? '192.168.1.0/24' : name === 'Hash laboratory' ? 'Enter text to calculate its SHA-256 digest...' : name === 'Base64 workbench' ? 'ENCODE\nHello BLACKVEIL' : name === 'JWT inspector' ? 'eyJhbGciOi...' : name === 'Password auditor' ? 'Enter a sample password (do not use a real password).' : name === 'URL inspector' ? 'https://example.com/path?query=value' : name === 'Regex workbench' ? '^admin\n gi\nadmin\nuser\nroot' : 'Paste text to analyze...'} rows={6}/><button className="primary-btn run-btn" disabled={!input.trim() || busy} onClick={run}>{busy ? 'Processing…' : 'Run locally'} <ArrowUpRight size={15}/></button>{result && <div className="result-box"><div className="result-head">OUTPUT <button onClick={() => navigator.clipboard?.writeText(result)}>Copy</button></div><pre>{result}</pre></div>}<p className="privacy-note"><LockKeyhole size={13}/> Processing happens in this browser. Input is not uploaded.</p></> : <div className="module-placeholder"><FlaskConical size={28}/><h3>Not available yet</h3><p>This capability is not implemented. No fake scan or remote action will be executed.</p></div>}</div></div>
+  const ready = ['Network mapper','DNS resolver','RDAP lookup','CVE search','Hash laboratory','IOC extractor','Log analyzer','Base64 workbench','JWT inspector','Password auditor','URL inspector','Regex workbench'].includes(name)
+  return <div className="modal-backdrop" onMouseDown={e => {if(e.target === e.currentTarget) onClose()}}><div className="tool-modal"><div className="modal-head"><div><div className="eyebrow">LOCAL TOOL / BROWSER EXECUTION</div><h2>{name}</h2></div><button className="icon-btn" onClick={onClose}><X size={18}/></button></div>{ready ? <><label className="field-label">{name === 'Network mapper' ? 'IPv4 / CIDR' : name === 'DNS resolver' ? 'DOMAIN AND DNS RECORD TYPE (e.g. example.com MX)' : name === 'RDAP lookup' ? 'IP ADDRESS OR DOMAIN' : name === 'CVE search' ? 'KEYWORD / PRODUCT / VERSION' : name === 'Hash laboratory' ? 'TEXT TO HASH (SHA-256)' : name === 'IOC extractor' ? 'TEXT / INDICATORS TO INSPECT' : name === 'Log analyzer' ? 'LOG CONTENT' : name === 'Base64 workbench' ? 'FIRST LINE: ENCODE OR DECODE; NEXT LINES: TEXT' : name === 'JWT inspector' ? 'COMPACT JWT' : name === 'Password auditor' ? 'PASSWORD TO AUDIT (LOCAL ONLY)' : name === 'URL inspector' ? 'ABSOLUTE URL' : 'FIRST LINE: REGEX; SECOND LINE: FLAGS; REST: TEST TEXT'}</label><textarea value={input} onChange={e => setInput(e.target.value)} placeholder={name === 'Network mapper' ? '192.168.1.0/24' : name === 'DNS resolver' ? 'example.com A' : name === 'RDAP lookup' ? 'example.com or 8.8.8.8' : name === 'CVE search' ? 'OpenSSH 9.6' : name === 'Hash laboratory' ? 'Enter text to calculate its SHA-256 digest...' : name === 'Base64 workbench' ? 'ENCODE\nHello BLACKVEIL' : name === 'JWT inspector' ? 'eyJhbGciOi...' : name === 'Password auditor' ? 'Enter a sample password (do not use a real password).' : name === 'URL inspector' ? 'https://example.com/path?query=value' : name === 'Regex workbench' ? '^admin\n gi\nadmin\nuser\nroot' : 'Paste text to analyze...'} rows={6}/><button className="primary-btn run-btn" disabled={!input.trim() || busy} onClick={run}>{busy ? 'Processing…' : 'Run locally'} <ArrowUpRight size={15}/></button>{result && <div className="result-box"><div className="result-head">OUTPUT <button onClick={() => navigator.clipboard?.writeText(result)}>Copy</button></div><pre>{result}</pre></div>}<p className="privacy-note"><LockKeyhole size={13}/> Processing happens in this browser. Input is not uploaded.</p></> : <div className="module-placeholder"><FlaskConical size={28}/><h3>Not available yet</h3><p>This capability is not implemented. No fake scan or remote action will be executed.</p></div>}</div></div>
 }
 export default App
