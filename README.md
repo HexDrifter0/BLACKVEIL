@@ -42,12 +42,15 @@ BLACKVEIL is organized around operational work, with the Academy as a supporting
 - **Toolbox** — local-first utilities for network calculations, hashing, IOC extraction, log triage, Base64, JWT inspection, password-strength estimation, URL parsing and regular-expression testing.
 - **Internet intelligence** — live public DNS, RDAP, Certificate Transparency and NVD lookups. Shodan, Censys and reputation feeds require server-side provider credentials.
 - **Threat intelligence** — IOC extraction, a persistent local indicator register and on-demand RDAP context for IPs/domains.
-- **Laboratories** — interactive browser exercises with checkpoints and saved local progress; these are educational simulations, not isolated containers.
+- **Laboratories** — browser learning checkpoints plus a local Docker cyber range with OWASP Juice Shop, WebGoat, Kali tools and ZAP passive baseline. See [`labs/README.md`](./labs/README.md).
 - **Devices** — agent control-plane requirements and status; real endpoint pairing is unavailable until the Linux/Windows agents and backend are deployed.
 - **Academy** — structured courses that teach the technologies and security concepts used by the operational modules.
 
 ### Academy curriculum
 The Academy currently contains **21 courses** across web development, programming, data, developer tooling, automation, DevOps, systems programming and cybersecurity: HTML5, CSS3, JavaScript, TypeScript, Python, C, C++, Rust, Java, SQL, Git/GitHub, Bash, PowerShell, Docker, digital fundamentals, networking, cybersecurity essentials, Linux, web security/OWASP, SOC/incident response and ethical penetration testing. Each course currently includes three lessons, theory, a guided practical exercise, a checkpoint and a final assessment. Progress is stored in the current browser; cross-device synchronization and executable browser IDE labs are not yet implemented.
+
+### Local cyber range
+The optional Docker range runs intentionally vulnerable OWASP targets on loopback-only host ports and an internal Docker network. Kali and ZAP tools are not exposed on host ports. Start-up, commands, safety boundaries and cleanup are documented in [`labs/README.md`](./labs/README.md). The range must not be deployed publicly.
 
 ### Execution model
 Browser-only utilities must disclose their local processing limits. Network discovery, packet capture, endpoint inspection, vulnerability scanning and shell execution require a separately installed, permissioned agent or an isolated lab runtime; a website must never pretend that a browser-only action performed those tasks. Planned modules are not presented as operational capabilities.
