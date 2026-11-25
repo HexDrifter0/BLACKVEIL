@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, BookOpen, CheckCircle2, Database, FlaskConical, Globe, Lock, Plus, RefreshCw, Shield, ShieldCheck, Terminal, Wifi, XCircle } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
+import PlatformCore from './PlatformCore'
 import { getSupabaseClient } from './lib/supabase'
 
 type Props = { section:string; user:User|null }
@@ -12,7 +13,7 @@ const urlRe=/https?:\/\/[^\s"'<>]+/gi
 const domainRe=/\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:com|net|org|io|dev|info|co|es|uk|de|ru|cn|app|cloud|xyz)\b/gi
 function classify(v:string){if(/^https?:\/\//i.test(v))return 'URL';if(ipRe.test(v)){ipRe.lastIndex=0;return 'IPv4'}ipRe.lastIndex=0;if(hashRe.test(v)){hashRe.lastIndex=0;return 'HASH'}hashRe.lastIndex=0;if(domainRe.test(v)){domainRe.lastIndex=0;return 'DOMAIN'}domainRe.lastIndex=0;return 'UNKNOWN'}
 function extract(v:string){const all=[...(v.match(ipRe)||[]),...(v.match(urlRe)||[]),...(v.match(hashRe)||[]),...(v.match(domainRe)||[])];return [...new Set(all.map(x=>x.replace(/[),.;]+$/,'')))].filter(Boolean)}
-export default function MissionModules({section,user}:Props){if(section==='Threat intelligence')return <ThreatIntel user={user}/>;if(section==='Laboratories')return <Labs/>;if(section==='Devices')return <Devices/>;return <Settings user={user}/>}
+export default function MissionModules({section,user}:Props){if(['Asset inventory','Case management','Reports'].includes(section))return <PlatformCore section={section}/>;if(section==='Threat intelligence')return <ThreatIntel user={user}/>;if(section==='Laboratories')return <Labs/>;if(section==='Devices')return <Devices/>;return <Settings user={user}/>}
 
 function ThreatIntel({user}:{user:User|null}){
  const supabase=getSupabaseClient()
