@@ -48,6 +48,13 @@ requireCondition(internalNetworks.size > 0, 'At least one Docker network must be
 for (const [name, service] of Object.entries(services)) {
   requireCondition(service.privileged !== true, `${name} must not run in privileged mode.`);
   requireCondition(service.network_mode !== 'host', `${name} must not use host networking.`);
+  requireCondition(!(service.devices ?? []).length, `${name} must not receive direct host device access.`);
+  if (name !== 'kali') {
+    requireCondition(
+      !(service.volumes ?? []).some((mount) => mount.type === 'bind'),
+      `${name} must not receive host bind mounts.`,
+    );
+  }
 
   const attachedNetworks = Object.keys(service.networks ?? {});
   requireCondition(attachedNetworks.length > 0, `${name} must be attached to the isolated lab network.`);
@@ -100,10 +107,6 @@ for (const name of ['kali', 'zap']) {
   requireCondition(
     (service.profiles ?? []).includes('tools'),
     `${name} must remain behind the opt-in "tools" Compose profile.`,
-  );
-  requireCondition(
-    !(service.devices ?? []).length,
-    `${name} must not receive direct host device access.`,
   );
 }
 
