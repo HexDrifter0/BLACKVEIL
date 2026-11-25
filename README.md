@@ -65,3 +65,13 @@ The application now includes Supabase Auth client flows for email/password, Goog
 ## Backend and cloud workspace
 
 BLACKVEIL uses a dedicated Supabase project for account profiles, authorized engagement records, IOC storage and audit events. See [BACKEND_SETUP.md](./BACKEND_SETUP.md) for authentication/provider configuration, database security and deployment boundaries. A public-key environment template is available in [`.env.example`](./.env.example).
+
+
+## Core workspace modules
+
+The application includes local-first operational records for:
+- **Asset inventory** — manually register domains, IPs, applications, servers and environments. Adding an asset does not scan it.
+- **Case management** — track findings with severity, status and analyst summaries.
+- **Reports** — export a Markdown snapshot of the locally recorded assets and cases.
+
+These records currently live in the browser's local storage. They are not synchronized to Supabase, shared between users, or immutable evidence. Cloud persistence and authorization-aware team access remain planned work.
