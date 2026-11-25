@@ -22,6 +22,7 @@ export default function InternetRecon(){
  const runAdvanced=async()=>{
   setAdvancedBusy(true);setAdvancedResult('')
   try{
+   if(kind==='cves')throw new Error('CVE keywords are handled by NVD. Use an IP, domain or file hash for provider enrichment.')
    const supabase=getSupabaseClient()
    if(!supabase)throw new Error('Supabase is not configured.')
    const {data:sessionData}=await supabase.auth.getSession()
