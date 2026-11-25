@@ -71,7 +71,7 @@ BLACKVEIL uses a dedicated Supabase project for account profiles, authorized eng
 
 The application includes local-first operational records for:
 - **Asset inventory** — manually register domains, IPs, applications, servers and environments. Adding an asset does not scan it.
-- **Case management** — track findings with severity, status and analyst summaries.
+- **Case management** — track findings with severity, status and analyst summaries.\n- **Vulnerability management** — maintain a local finding register with CVE references, affected assets, severity and remediation notes.
 - **Reports** — export a Markdown snapshot of the locally recorded assets and cases.
 
 These records currently live in the browser's local storage. They are not synchronized to Supabase, shared between users, or immutable evidence. Cloud persistence and authorization-aware team access remain planned work.
