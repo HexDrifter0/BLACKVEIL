@@ -59,7 +59,7 @@ for (const [name, service] of Object.entries(services)) {
   if (!Object.hasOwn(expectedLoopbackPorts, name)) {
     requireCondition(
       (service.ports ?? []).length === 0,
-      `${name} is not an approved public-to-host lab target and must not publish ports.`,
+      `${name} is not an approved host-published lab target and must not publish ports.`,
     );
   }
 }
@@ -125,7 +125,7 @@ if (kali) {
   requireCondition(mounts.length === 1, 'Kali must have exactly one host mount: the dedicated lab workspace.');
   for (const mount of mounts) {
     requireCondition(mount.type === 'bind', 'Kali workspace mount must be an explicit bind mount.');
-    const source = String(mount.source).replaceAll(/\\\\/g, '/');
+    const source = String(mount.source).replaceAll(/\\/g, '/');
     requireCondition(
       mount.target === '/workspace' && source.endsWith('/labs/workspace'),
       'Kali may mount only labs/workspace at /workspace.',
