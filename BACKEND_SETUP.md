@@ -26,7 +26,7 @@ The ChatGPT button is deliberately disabled unless `VITE_OPENAI_AUTH_URL` is con
 
 ## Database schema
 
-Migration: `supabase/migrations/20261125030000_blackveil_core_workspace.sql`
+Migration: `supabase/migrations/20261125022608_blackveil_core_workspace.sql`
 
 - `profiles`: account profile and preferences.
 - `engagements`: owner-scoped assessment records, explicit authorization and expiry.
