@@ -33,3 +33,8 @@ Copy `.env.example` to `.env.local` and fill in the Supabase project URL and pub
 - Training exercises should run in isolated, disposable environments.
 
 See [SECURITY.md](./SECURITY.md) for the security model.
+
+## BLACKVEIL Academy
+The Academy currently includes eight progressive courses (foundation to professional): digital fundamentals, networking, cybersecurity essentials, Linux, Python automation, web security/OWASP, SOC/incident response, and ethical penetration testing. Each course includes lessons, guided exercises and a final assessment. Local progress is stored in the current browser.
+
+The private completion certificate is planned at **€2.00 EUR**. Real payment is not enabled until Stripe Checkout, Supabase Auth, server-side progress verification and signed webhooks are configured. See [PAYMENTS.md](./PAYMENTS.md) and the SQL migration under `supabase/migrations`. The certificate is not an official academic qualification.
