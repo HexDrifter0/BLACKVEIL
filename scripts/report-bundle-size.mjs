@@ -30,7 +30,7 @@ if (!entry) {
 }
 
 const totalBytes = chunks.reduce((sum, chunk) => sum + chunk.bytes, 0)
-const threshold = 500 * 1024
+const threshold = 500_000
 const lines = [
   '## JavaScript bundle report',
   '',
@@ -41,12 +41,12 @@ const lines = [
   '|---|---:|---:|',
   ...chunks.slice(0, 12).map(chunk => `| ${chunk.name} | ${(chunk.bytes / 1024).toFixed(2)} | ${(chunk.gzip / 1024).toFixed(2)} |`),
   '',
-  `Threshold: 500 KiB. Result: ${entry.bytes <= threshold ? 'PASS' : 'FAIL'}.`
+  `Threshold: 500 kB. Result: ${entry.bytes <= threshold ? 'PASS' : 'FAIL'}.`
 ]
 const report = lines.join('\n') + '\n'
 console.log(report)
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, report)
 if (entry.bytes > threshold) {
-  console.error('[bundle-report] Initial entry exceeds 500 KiB.')
+  console.error('[bundle-report] Initial entry exceeds 500 kB.')
   process.exitCode = 1
 }
