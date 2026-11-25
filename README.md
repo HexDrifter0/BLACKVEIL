@@ -32,7 +32,7 @@ Copy `.env.example` to `.env.local` and fill in the Supabase project URL and pub
 - Secrets never belong in frontend source control. Never expose Supabase service-role keys in a browser client.
 - Training exercises should run in isolated, disposable environments.
 
-See [SECURITY.md](./SECURITY.md) for the security model. For account setup, provider callbacks, OAuth configuration and required deployment secrets, see [AUTH_SETUP.md](./AUTH_SETUP.md).
+See [SECURITY.md](./SECURITY.md) for the security model. For account setup, provider callbacks, OAuth configuration and required deployment secrets, see [AUTH_SETUP.md](./AUTH_SETUP.md). For Internet data sources, active scan architecture and deployment boundaries, see [INTERNET_OPERATIONS.md](./INTERNET_OPERATIONS.md).
 
 ## Platform modules
 BLACKVEIL is organized around operational work, with the Academy as a supporting learning path:
@@ -40,7 +40,8 @@ BLACKVEIL is organized around operational work, with the Academy as a supporting
 - **Overview** — workspace status and quick access.
 - **Operations** — local engagement register with target, explicit authorization confirmation, scope boundaries, timestamps and saved records. It documents work; it does not launch scans.
 - **Toolbox** — local-first utilities for network calculations, hashing, IOC extraction, log triage, Base64, JWT inspection, password-strength estimation, URL parsing and regular-expression testing.
-- **Threat intelligence** — IOC extraction, a persistent local indicator register and on-demand RDAP context for IPs/domains. Reputation feeds require provider API credentials.
+- **Internet intelligence** — live public DNS, RDAP, Certificate Transparency and NVD lookups. Shodan, Censys and reputation feeds require server-side provider credentials.
+- **Threat intelligence** — IOC extraction, a persistent local indicator register and on-demand RDAP context for IPs/domains.
 - **Laboratories** — interactive browser exercises with checkpoints and saved local progress; these are educational simulations, not isolated containers.
 - **Devices** — agent control-plane requirements and status; real endpoint pairing is unavailable until the Linux/Windows agents and backend are deployed.
 - **Academy** — structured courses that teach the technologies and security concepts used by the operational modules.
