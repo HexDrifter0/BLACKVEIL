@@ -5,7 +5,7 @@ import { gzipSync } from 'node:zlib'
 const dist = new URL('../dist/', import.meta.url)
 const distPath = decodeURIComponent(dist.pathname)
 const html = readFileSync(join(distPath, 'index.html'), 'utf8')
-const entryMatch = html.match(/<script\\b[^>]*src="([^"]+\\.js)"/)
+const entryMatch = html.match(/<script\b[^>]*src="([^"]+\.js)"/)
 
 if (!entryMatch) {
   console.error('[bundle-report] Could not identify the initial JavaScript entry in dist/index.html.')
@@ -43,7 +43,7 @@ const lines = [
   '',
   `Threshold: 500 KiB. Result: ${entry.bytes <= threshold ? 'PASS' : 'FAIL'}.`
 ]
-const report = lines.join('\\n') + '\\n'
+const report = lines.join('\n') + '\n'
 console.log(report)
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, report)
 if (entry.bytes > threshold) {
