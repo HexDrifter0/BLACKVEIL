@@ -31,6 +31,7 @@ jobs:
       - name: Build Vite application
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_OPENAI_AUTH_URL: ${{ secrets.VITE_OPENAI_AUTH_URL }}
         run: npm run build
