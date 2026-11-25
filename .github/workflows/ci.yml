@@ -61,6 +61,10 @@ jobs:
           const summary = lines.join('\n') + '\n'
           console.log(summary)
           appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary)
+          if ((counts.high ?? 0) > 0 || (counts.critical ?? 0) > 0) {
+            console.error('High or critical dependency vulnerabilities remain.')
+            process.exitCode = 1
+          }
           NODE
       - name: Upload dependency audit report
         if: always()
