@@ -32,7 +32,7 @@ export default function Profile({ user, onSignIn }: Props) {
   const save = async () => {
     if (!supabase || !user) return
     setBusy(true); setError(''); setNotice('')
-    const payload = { id:user.id, display_name:profile.display_name.trim() || null, username:profile.username.trim().toLowerCase() || null, bio:profile.bio.trim() || null, avatar_url:profile.avatar_url.trim() || null, preferred_profile:profile.preferred_profile, updated_at:new Date().toISOString() }
+    const payload = { id:user.id, display_name:profile.display_name?.trim() || null, username:profile.username?.trim().toLowerCase() || null, bio:profile.bio?.trim() || null, avatar_url:profile.avatar_url?.trim() || null, preferred_profile:profile.preferred_profile, updated_at:new Date().toISOString() }
     const { error } = await supabase.from('profiles').upsert(payload)
     if (error) setError(error.message)
     else setNotice('Perfil guardado en tu cuenta.')
