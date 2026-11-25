@@ -1,4 +1,5 @@
-import type { Course } from './academy-types'
+type Lesson = { title: string; duration: string; theory: string[]; practice: string; checkpoint: string }
+type Course = { id: string; level: string; title: string; subtitle: string; duration: string; lessons: Lesson[]; assessment: { question: string; options: string[]; answer: number; explanation: string }[] }
 
 export const additionalCourses: Course[] = [
   {
