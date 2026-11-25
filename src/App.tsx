@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import {
   Activity, ArrowUpRight, Bell, BookOpen, ChevronDown, ChevronRight, CircleDot, Command,
@@ -6,15 +6,17 @@ import {
   LockKeyhole, Menu, Network, Radar, Search, Settings2, Shield, ShieldAlert, UserRound,
   ShieldCheck, Terminal, X, Zap
 } from 'lucide-react'
-import Academy from './Academy'
-import Operations from './Operations'
-import AuthPanel from './AuthPanel'
-import Profile from './Profile'
-import MissionModules from './MissionModules'
-import InternetRecon from './InternetRecon'
-import AuditFeed from './AuditFeed'
 import { getSupabaseClient } from './lib/supabase'
 import './styles.css'
+import ModuleErrorBoundary from './components/ModuleErrorBoundary'
+
+const Academy = lazy(() => import('./Academy'))
+const Operations = lazy(() => import('./Operations'))
+const AuthPanel = lazy(() => import('./AuthPanel'))
+const Profile = lazy(() => import('./Profile'))
+const MissionModules = lazy(() => import('./MissionModules'))
+const InternetRecon = lazy(() => import('./InternetRecon'))
+const AuditFeed = lazy(() => import('./AuditFeed'))
 
 type Profile = 'White Hat' | 'Black Hat' | 'Red Hat' | 'Blue Hat' | 'Purple Hat'
 type ToolItem = { name: string; description: string; category: string; icon: typeof Shield; status: string }
@@ -88,14 +90,18 @@ function App() {
     <main className="main-area">
       <header className="topbar"><div className="top-left"><button className="mobile-menu" onClick={() => setMobileNav(true)}><Menu size={19}/></button><div className="breadcrumb">Workspace <ChevronRight size={13}/> <b>{section}</b></div></div><div className="top-actions"><div className="system-pill"><span className="online-dot"/> SYSTEM OPERATIONAL</div><button className="icon-btn" aria-label="Notifications" onClick={() => setNotice('No tienes notificaciones nuevas.')}><Bell size={17}/></button><button className="top-avatar top-avatar-button" onClick={() => chooseSection(user ? 'Profile' : 'Sign in')} aria-label={user ? 'Open profile' : 'Sign in'}>{user?.email?.slice(0,2).toUpperCase() || 'OP'}</button></div></header>
       <div className="page-content">
+        <ModuleErrorBoundary moduleName={section}>
+          <Suspense fallback={<div className="module-placeholder" role="status" aria-live="polite"><p>Loading workspace module…</p></div>}>
         {section === 'Overview' ? <><div className="page-heading"><div><div className="eyebrow"><span/> SECURITY OPERATIONS CENTER</div><h1>Command overview<span className="heading-dot">.</span></h1><p>Tu espacio de trabajo para operaciones de ciberseguridad.</p></div><button className="date-chip"><Activity size={15}/> LIVE ENVIRONMENT</button></div>
           <section className="hero-panel"><div className="hero-grid"/><div className="hero-content"><div className="hero-kicker"><Zap size={13}/> OPERATIONAL PROFILE</div><h2>Think like an attacker.<br/><em>Defend like a strategist.</em></h2><p>Un entorno unificado para analizar, aprender y proteger sistemas con control y trazabilidad.</p><div className="hero-buttons"><button className="primary-btn" onClick={() => chooseSection('Toolbox')}>Explore toolbox <ArrowUpRight size={16}/></button><button className="ghost-btn" onClick={() => chooseSection('Laboratories')}>Open laboratories <ChevronRight size={15}/></button></div></div><div className="hero-orb"><div className="orb-ring ring-one"/><div className="orb-ring ring-two"/><div className="orb-core"><ShieldCheck size={37}/></div><span className="orb-caption">CONTROLLED<br/>ENVIRONMENT</span></div><div className="hero-index">BV / 001 — FIELD CONSOLE</div></section>
           <section className="profile-section"><div className="section-heading"><div><div className="eyebrow">01 / WORKING CONTEXT</div><h3>Operational profiles</h3></div><span className="muted-tag">SELECT A MODE</span></div><div className="profile-grid">{profiles.map(p => <button key={p.name} onClick={() => {setProfile(p.name)}} className={`profile-card ${profile === p.name ? 'profile-selected' : ''}`} style={{'--profile-color':p.color} as React.CSSProperties}><div className="profile-top"><span className="profile-code">{p.short}</span>{profile === p.name ? <span className="selected-indicator"><CircleDot size={14}/> ACTIVE</span> : <ChevronRight size={15}/>}</div><b>{p.name}</b><span>{p.description}</span></button>)}</div></section>
           <section className="stats-grid"><div className="stat-card"><div className="stat-top"><span>ACTIVE SESSIONS</span><Activity size={16}/></div><div className="stat-value">01 <small className="stat-neutral">LOCAL</small></div><div className="stat-foot">This browser session</div></div><div className="stat-card"><div className="stat-top"><span>CONNECTED DEVICES</span><Database size={16}/></div><div className="stat-value">00 <small className="stat-neutral">PAIRED</small></div><div className="stat-foot">No remote agents connected</div></div><div className="stat-card"><div className="stat-top"><span>AVAILABLE TOOLS</span><Terminal size={16}/></div><div className="stat-value">{tools.filter(t => t.status === 'READY').length.toString().padStart(2, '0')} <small className="stat-up"><ArrowUpRight size={12}/> MIXED</small></div><div className="stat-foot">Local utilities + live public lookups</div></div><div className="stat-card"><div className="stat-top"><span>SECURITY EVENTS</span><ShieldAlert size={16}/></div><div className="stat-value">00 <small className="stat-neutral">TODAY</small></div><div className="stat-foot">No events recorded yet</div></div></section>
-          <section className="lower-grid"><div className="panel"><div className="panel-heading"><div><div className="eyebrow">02 / QUICK ACCESS</div><h3>Toolbox highlights</h3></div><button className="text-link" onClick={() => chooseSection('Toolbox')}>View all <ArrowUpRight size={14}/></button></div><div className="quick-tools">{tools.slice(0,3).map(t => <button className="quick-tool" key={t.name} onClick={() => {setSection('Toolbox');setActiveTool(t.name)}}><div className="tool-icon"><t.icon size={17}/></div><div><b>{t.name}</b><span>{t.description}</span></div><ChevronRight size={15}/></button>)}</div></div><div className="panel activity-panel"><div className="panel-heading"><div><div className="eyebrow">03 / AUDIT TRAIL</div><h3>Recent activity</h3></div><span className="live-label"><span/> LIVE</span></div><AuditFeed user={user}/></div></section>
+          <section className="lower-grid"><div className="panel"><div className="panel-heading"><div><div className="eyebrow">02 / QUICK ACCESS</div><h3>Toolbox highlights</h3></div><button className="text-link" onClick={() => chooseSection('Toolbox')}>View all <ArrowUpRight size={14}/></button></div><div className="quick-tools">{tools.slice(0,3).map(t => <button className="quick-tool" key={t.name} onClick={() => {setSection('Toolbox');setActiveTool(t.name)}}><div className="tool-icon"><t.icon size={17}/></div><div><b>{t.name}</b><span>{t.description}</span></div><ChevronRight size={15}/></button>)}</div></div><div className="panel activity-panel"><div className="panel-heading"><div><div className="eyebrow">03 / AUDIT TRAIL</div><h3>Recent activity</h3></div><span className="live-label"><span/> LIVE</span></div><Suspense fallback={<p role="status" aria-live="polite">Loading recent activity…</p>}><AuditFeed user={user}/></Suspense></div></section>
         </> : section === 'Sign in' ? <AuthPanel onBack={() => chooseSection('Overview')} onAuthenticated={() => chooseSection('Profile')} /> : section === 'Profile' ? <Profile user={user} onSignIn={() => chooseSection('Sign in')} /> : section === 'Internet intelligence' ? <InternetRecon /> : section === 'Academy' ? <Academy /> : section === 'Operations' ? <Operations /> : ['Threat intelligence','Laboratories','Devices','Asset inventory','Case management','Vulnerability management','Reports','Settings'].includes(section) ? <MissionModules section={section} user={user} /> : <><div className="page-heading compact-heading"><div><div className="eyebrow">BLACKVEIL / MODULE</div><h1>{section}<span className="heading-dot">.</span></h1><p>{section === 'Toolbox' ? 'Utilidades locales y consultas de inteligencia conectadas a Internet.' : 'Módulo preparado para la siguiente fase de integración.'}</p></div><span className="date-chip"><CircleDot size={14}/> {section === 'Toolbox' ? `${tools.filter(t => t.status === 'READY').length} TOOLS READY` : 'MODULE PREVIEW'}</span></div>
           {section === 'Toolbox' ? <><div className="search-bar"><Search size={17}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search tools, categories..." /><kbd>⌘ K</kbd></div><div className="tool-grid">{filteredTools.map(t => <button key={t.name} className="tool-card" onClick={() => setActiveTool(t.name)}><div className="tool-card-top"><div className="tool-icon large"><t.icon size={20}/></div><span className={t.status === 'READY' ? 'ready-tag' : 'planned-tag'}>{t.status}</span></div><h3>{t.name}</h3><p>{t.description}</p><div className="tool-card-foot"><span>{t.category}</span><ArrowUpRight size={15}/></div></button>)}</div></> : <div className="module-placeholder"><div className="placeholder-icon"><Shield size={28}/></div><h2>{section} module</h2><p>Este módulo se conectará a servicios reales en próximas iteraciones. No se mostrarán datos simulados como si fueran operaciones reales.</p><button className="primary-btn" onClick={() => chooseSection('Toolbox')}>Use available tools <ArrowUpRight size={15}/></button></div>}
         </>}
+                </Suspense>
+        </ModuleErrorBoundary>
       </div>
       <footer className="footer"><span>BLACKVEIL <i>v0.1.0 / FOUNDATION</i></span><span><span className="online-dot"/> ALL SYSTEMS NOMINAL</span></footer>
     </main>

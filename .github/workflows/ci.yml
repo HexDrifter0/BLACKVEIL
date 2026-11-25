@@ -17,5 +17,7 @@ jobs:
       - run: npm install
       - run: npm run typecheck
       - run: npm run build
+      - name: Report and enforce initial JavaScript bundle size
+        run: npm run report:bundle
       - name: Validate local lab Compose configuration
         run: docker compose -f labs/docker-compose.yml config --quiet
