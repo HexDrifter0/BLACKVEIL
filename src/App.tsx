@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  Activity, ArrowUpRight, Bell, ChevronDown, ChevronRight, CircleDot, Command,
+  Activity, ArrowUpRight, Bell, BookOpen, ChevronDown, ChevronRight, CircleDot, Command,
   Crosshair, Database, FileSearch, Fingerprint, FlaskConical, LayoutDashboard,
   LockKeyhole, Menu, Network, Radar, Search, Settings2, Shield, ShieldAlert,
   ShieldCheck, Terminal, X, Zap
