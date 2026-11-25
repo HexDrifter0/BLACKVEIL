@@ -231,7 +231,7 @@ async def dispatch_continue(project: str, state: ProjectState) -> None:
             headers={"Authorization": f"Bearer {pc['webhook_token']}", "Idempotency-Key": idem},
         )
         response.raise_for_status()
-    record(SessionLocal(), project, "continuation_dispatched", {"session_id": state.active_session_id, "tick": tick})
+    return
 
 
 async def supervise_once() -> None:
@@ -289,6 +289,7 @@ async def supervise_once() -> None:
                 elif state.status == "working":
                     try:
                         await dispatch_continue(project, state)
+                        record(db, project, "continuation_dispatched", {"session_id": state.active_session_id})
                     except Exception as exc:
                         record(db, project, "continuation_dispatch_failed", {"error": type(exc).__name__})
         finally:
