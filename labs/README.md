@@ -42,8 +42,7 @@ These targets are intentionally vulnerable. Do not expose their ports through yo
 Build and start the Kali tools container:
 
 ```bash
-docker compose -f labs/docker-compose.yml --profile tools up -d --build kali
-docker compose -f labs/docker-compose.yml exec kali bash
+docker compose -f labs/docker-compose.yml --profile tools run --rm --build kali bash
 ```
 
 Inside the container, the target names resolve through the isolated Docker network:
@@ -55,7 +54,7 @@ nikto -h http://juice-shop:3000
 curl -I http://juice-shop:3000
 ```
 
-These commands are intended for the included lab services only. The Kali image does not mount the host filesystem except for `labs/workspace`.
+These commands are intended for the included lab services only. The Kali image does not mount the host filesystem except for `labs/workspace`. The one-off container is removed when you exit the shell.
 
 ## Run OWASP ZAP baseline
 
