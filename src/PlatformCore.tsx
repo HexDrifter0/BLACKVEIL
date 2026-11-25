@@ -2,23 +2,28 @@ import { useMemo, useState } from 'react'
 import { Archive, ClipboardList, Download, FileText, Plus, Search, ShieldCheck, Trash2, Boxes } from 'lucide-react'
 
 type Asset={id:string,name:string,kind:string,identifier:string,environment:string,createdAt:string}
-type CaseItem={id:string,title:string,severity:string,status:string,summary:string,createdAt:string}\ntype Vuln={id:string,title:string,cve:string,severity:string,asset:string,status:string,notes:string,createdAt:string}
+type CaseItem={id:string,title:string,severity:string,status:string,summary:string,createdAt:string}
+type Vuln={id:string,title:string,cve:string,severity:string,asset:string,status:string,notes:string,createdAt:string}
 const ASSET_KEY='blackveil.assets.v1'
-const CASE_KEY='blackveil.cases.v1'\nconst VULN_KEY='blackveil.vulnerabilities.v1'
+const CASE_KEY='blackveil.cases.v1'
+const VULN_KEY='blackveil.vulnerabilities.v1'
 function read<T>(key:string):T[]{try{return JSON.parse(localStorage.getItem(key)||'[]') as T[]}catch{return []}}
 function save<T>(key:string,value:T[]){localStorage.setItem(key,JSON.stringify(value))}
 function uid(){return crypto.randomUUID()}
 function download(name:string,content:string,type='text/markdown'){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
 export default function PlatformCore({section}:{section:string}){
  const [assets,setAssets]=useState<Asset[]>(()=>read<Asset>(ASSET_KEY))
- const [cases,setCases]=useState<CaseItem[]>(()=>read<CaseItem>(CASE_KEY))\n const [vulns,setVulns]=useState<Vuln[]>(()=>read<Vuln>(VULN_KEY))
+ const [cases,setCases]=useState<CaseItem[]>(()=>read<CaseItem>(CASE_KEY))
+ const [vulns,setVulns]=useState<Vuln[]>(()=>read<Vuln>(VULN_KEY))
  const [search,setSearch]=useState('')
  const [notice,setNotice]=useState('')
  const [assetForm,setAssetForm]=useState({name:'',kind:'Domain',identifier:'',environment:'Production'})
- const [caseForm,setCaseForm]=useState({title:'',severity:'Medium',summary:''})\n const [vulnForm,setVulnForm]=useState({title:'',cve:'',severity:'High',asset:'',notes:''})
+ const [caseForm,setCaseForm]=useState({title:'',severity:'Medium',summary:''})
+ const [vulnForm,setVulnForm]=useState({title:'',cve:'',severity:'High',asset:'',notes:''})
  const [showAsset,setShowAsset]=useState(false),[showCase,setShowCase]=useState(false),[showVuln,setShowVuln]=useState(false)
  const filteredAssets=useMemo(()=>assets.filter(x=>(x.name+' '+x.identifier+' '+x.kind).toLowerCase().includes(search.toLowerCase())),[assets,search])
- const filteredCases=useMemo(()=>cases.filter(x=>(x.title+' '+x.summary+' '+x.status).toLowerCase().includes(search.toLowerCase())),[cases,search])\n const filteredVulns=useMemo(()=>vulns.filter(x=>(x.title+' '+x.cve+' '+x.asset+' '+x.status).toLowerCase().includes(search.toLowerCase())),[vulns,search])
+ const filteredCases=useMemo(()=>cases.filter(x=>(x.title+' '+x.summary+' '+x.status).toLowerCase().includes(search.toLowerCase())),[cases,search])
+ const filteredVulns=useMemo(()=>vulns.filter(x=>(x.title+' '+x.cve+' '+x.asset+' '+x.status).toLowerCase().includes(search.toLowerCase())),[vulns,search])
  const addAsset=()=>{if(!assetForm.name.trim()||!assetForm.identifier.trim()){setNotice('Completa el nombre y el identificador.');return}const next=[{...assetForm,id:uid(),createdAt:new Date().toISOString()},...assets];setAssets(next);save(ASSET_KEY,next);setAssetForm({name:'',kind:'Domain',identifier:'',environment:'Production'});setShowAsset(false);setNotice('Activo guardado localmente.')}
  const addCase=()=>{if(!caseForm.title.trim()||!caseForm.summary.trim()){setNotice('Completa el título y el resumen.');return}const next=[{...caseForm,id:uid(),status:'Open',createdAt:new Date().toISOString()},...cases];setCases(next);save(CASE_KEY,next);setCaseForm({title:'',severity:'Medium',summary:''});setShowCase(false);setNotice('Caso creado localmente.')}
  const addVuln=()=>{if(!vulnForm.title.trim()||!vulnForm.asset.trim()){setNotice('Completa el hallazgo y el activo afectado.');return}const next=[{...vulnForm,id:uid(),status:'Open',createdAt:new Date().toISOString()},...vulns];setVulns(next);save(VULN_KEY,next);setVulnForm({title:'',cve:'',severity:'High',asset:'',notes:''});setShowVuln(false);setNotice('Vulnerability finding saved locally.') }\n const removeVuln=(id:string)=>{const next=vulns.filter(x=>x.id!==id);setVulns(next);save(VULN_KEY,next)}\n const removeAsset=(id:string)=>{const next=assets.filter(x=>x.id!==id);setAssets(next);save(ASSET_KEY,next)}
