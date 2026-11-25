@@ -15,6 +15,12 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Export generated npm lockfile for reproducible install
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package-lock
+          path: package-lock.json
+          retention-days: 7
       - name: Capture dependency audit details
         if: always()
         run: |
