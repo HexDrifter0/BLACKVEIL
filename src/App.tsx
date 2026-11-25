@@ -115,38 +115,38 @@ function ToolModal({ name, onClose }: { name: string; onClose: () => void }) {
         const warnings = lines.filter(l => /warn|warning/i.test(l))
         setResult(`Total lines: ${lines.length}\nPotential errors: ${errors.length}\nWarnings: ${warnings.length}\n\n${errors.slice(0,30).join('\n') || 'No matching error lines.'}`)
       } else if (name === 'Base64 workbench') {
-        const [mode, ...data] = input.split('\\n')
-        const value = data.join('\\n')
+        const [mode, ...data] = input.split('\n')
+        const value = data.join('\n')
         if (!value) throw new Error('Usa la primera línea como ENCODE o DECODE y después el texto.')
         setResult(mode.trim().toUpperCase() === 'ENCODE' ? btoa(unescape(encodeURIComponent(value))) : mode.trim().toUpperCase() === 'DECODE' ? decodeURIComponent(escape(atob(value.trim()))) : 'Primera línea: ENCODE o DECODE.')
       } else if (name === 'JWT inspector') {
         const parts = input.trim().split('.')
         if (parts.length !== 3) throw new Error('Un JWT compacto debe contener tres segmentos separados por puntos.')
         const decode = (part:string) => JSON.stringify(JSON.parse(decodeURIComponent(escape(atob(part.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(part.length/4)*4,'='))))), null, 2)
-        setResult(`HEADER (decoded only)\\n${decode(parts[0])}\\n\\nPAYLOAD (decoded only)\\n${decode(parts[1])}\\n\\nWARNING: Decoding does not validate the signature, issuer, audience or expiry.`)
+        setResult(`HEADER (decoded only)\n${decode(parts[0])}\n\nPAYLOAD (decoded only)\n${decode(parts[1])}\n\nWARNING: Decoding does not validate the signature, issuer, audience or expiry.`)
       } else if (name === 'Password auditor') {
         const value = input
-        const classes = [/[a-z]/.test(value),/[A-Z]/.test(value),/\\d/.test(value),/[^A-Za-z0-9]/.test(value)].filter(Boolean).length
+        const classes = [/[a-z]/.test(value),/[A-Z]/.test(value),/\d/.test(value),/[^A-Za-z0-9]/.test(value)].filter(Boolean).length
         const pool = [0,26,52,62,94][classes]
         const entropy = value.length * Math.log2(Math.max(pool,1))
         const common = /password|qwerty|123456|admin|letmein|welcome/i.test(value)
-        const score = common ? 'WEAK — common pattern detected' : entropy < 40 ? 'WEAK' : entropy <  entropyPlaceholder ? 'MODERATE' : 'STRONG'
-        setResult(`Length: ${value.length}\\nCharacter classes: ${classes}/4\\nEstimated entropy: ${entropy.toFixed(1)} bits\\nAssessment: ${score}\\n\\nThis is a rough offline estimate, not a crack-time guarantee. Avoid reusing passwords.`.replace('entropyPlaceholder','70'))
+        const score = common ? 'WEAK — common pattern detected' : entropy < 40 ? 'WEAK' : entropy < 70 ? 'MODERATE' : 'STRONG'
+        setResult(`Length: ${value.length}\nCharacter classes: ${classes}/4\nEstimated entropy: ${entropy.toFixed(1)} bits\nAssessment: ${score}\n\nThis is a rough offline estimate, not a crack-time guarantee. Avoid reusing passwords.`)
       } else if (name === 'URL inspector') {
         const url = new URL(input.trim())
-        setResult(`Protocol: ${url.protocol}\\nHostname: ${url.hostname}\\nPort: ${url.port || '(default)'}\\nPath: ${url.pathname}\\nQuery: ${url.search || '(none)'}\\nFragment: ${url.hash || '(none)'}\\nUsername present: ${Boolean(url.username)}\\nPassword present: ${Boolean(url.password)}\\n\\nParameters:\\n${[...url.searchParams.entries()].map(([k,v]) => `${k} = ${v}`).join('\\n') || '(none)'}`)
+        setResult(`Protocol: ${url.protocol}\nHostname: ${url.hostname}\nPort: ${url.port || '(default)'}\nPath: ${url.pathname}\nQuery: ${url.search || '(none)'}\nFragment: ${url.hash || '(none)'}\nUsername present: ${Boolean(url.username)}\nPassword present: ${Boolean(url.password)}\n\nParameters:\n${[...url.searchParams.entries()].map(([k,v]) => `${k} = ${v}`).join('\n') || '(none)'}`)
       } else if (name === 'Regex workbench') {
-        const [pattern, flags = '', ...body] = input.split('\\n')
+        const [pattern, flags = '', ...body] = input.split('\n')
         if (!pattern || !body.length) throw new Error('Primera línea: patrón. Segunda línea: flags opcionales tras | (ej. /gi). Resto: texto.')
         const regex = new RegExp(pattern, flags.replace(/[^dgimsuvy]/g,''))
-        const text = body.join('\\n')
+        const text = body.join('\n')
         const matches = [...text.matchAll(new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : regex.flags+'g'))]
-        setResult(`Matches: ${matches.length}\\n\\n${matches.slice(0,100).map((m,i) => `${i+1}. ${m[0]} (index ${m.index})`).join('\\n') || 'No matches.'}`)
+        setResult(`Matches: ${matches.length}\n\n${matches.slice(0,100).map((m,i) => `${i+1}. ${m[0]} (index ${m.index})`).join('\n') || 'No matches.'}`)
       }
     } catch (e) { setResult(e instanceof Error ? e.message : 'Error inesperado.') }
     finally { setBusy(false) }
   }
   const ready = ['Network mapper','Hash laboratory','IOC extractor','Log analyzer','Base64 workbench','JWT inspector','Password auditor','URL inspector','Regex workbench'].includes(name)
-  return <div className="modal-backdrop" onMouseDown={e => {if(e.target === e.currentTarget) onClose()}}><div className="tool-modal"><div className="modal-head"><div><div className="eyebrow">LOCAL TOOL / BROWSER EXECUTION</div><h2>{name}</h2></div><button className="icon-btn" onClick={onClose}><X size={18}/></button></div>{ready ? <><label className="field-label">{name === 'Network mapper' ? 'IPv4 / CIDR' : name === 'Hash laboratory' ? 'TEXT TO HASH (SHA-256)' : name === 'IOC extractor' ? 'TEXT / INDICATORS TO INSPECT' : name === 'Log analyzer' ? 'LOG CONTENT' : name === 'Base64 workbench' ? 'FIRST LINE: ENCODE OR DECODE; NEXT LINES: TEXT' : name === 'JWT inspector' ? 'COMPACT JWT' : name === 'Password auditor' ? 'PASSWORD TO AUDIT (LOCAL ONLY)' : name === 'URL inspector' ? 'ABSOLUTE URL' : 'FIRST LINE: REGEX; SECOND LINE: FLAGS; REST: TEST TEXT'}</label><textarea value={input} onChange={e => setInput(e.target.value)} placeholder={name === 'Network mapper' ? '192.168.1.0/24' : name === 'Hash laboratory' ? 'Enter text to calculate its SHA-256 digest...' : name === 'Base64 workbench' ? 'ENCODE\\nHello BLACKVEIL' : name === 'JWT inspector' ? 'eyJhbGciOi...' : name === 'Password auditor' ? 'Enter a sample password (do not use a real password).' : name === 'URL inspector' ? 'https://example.com/path?query=value' : name === 'Regex workbench' ? '^admin\\n gi\\nadmin\\nuser\\nroot' : 'Paste text to analyze...'} rows={6}/><button className="primary-btn run-btn" disabled={!input.trim() || busy} onClick={run}>{busy ? 'Processing…' : 'Run locally'} <ArrowUpRight size={15}/></button>{result && <div className="result-box"><div className="result-head">OUTPUT <button onClick={() => navigator.clipboard?.writeText(result)}>Copy</button></div><pre>{result}</pre></div>}<p className="privacy-note"><LockKeyhole size={13}/> Processing happens in this browser. Input is not uploaded.</p></> : <div className="module-placeholder"><FlaskConical size={28}/><h3>Not available yet</h3><p>This capability is not implemented. No fake scan or remote action will be executed.</p></div>}</div></div>
+  return <div className="modal-backdrop" onMouseDown={e => {if(e.target === e.currentTarget) onClose()}}><div className="tool-modal"><div className="modal-head"><div><div className="eyebrow">LOCAL TOOL / BROWSER EXECUTION</div><h2>{name}</h2></div><button className="icon-btn" onClick={onClose}><X size={18}/></button></div>{ready ? <><label className="field-label">{name === 'Network mapper' ? 'IPv4 / CIDR' : name === 'Hash laboratory' ? 'TEXT TO HASH (SHA-256)' : name === 'IOC extractor' ? 'TEXT / INDICATORS TO INSPECT' : name === 'Log analyzer' ? 'LOG CONTENT' : name === 'Base64 workbench' ? 'FIRST LINE: ENCODE OR DECODE; NEXT LINES: TEXT' : name === 'JWT inspector' ? 'COMPACT JWT' : name === 'Password auditor' ? 'PASSWORD TO AUDIT (LOCAL ONLY)' : name === 'URL inspector' ? 'ABSOLUTE URL' : 'FIRST LINE: REGEX; SECOND LINE: FLAGS; REST: TEST TEXT'}</label><textarea value={input} onChange={e => setInput(e.target.value)} placeholder={name === 'Network mapper' ? '192.168.1.0/24' : name === 'Hash laboratory' ? 'Enter text to calculate its SHA-256 digest...' : name === 'Base64 workbench' ? 'ENCODE\nHello BLACKVEIL' : name === 'JWT inspector' ? 'eyJhbGciOi...' : name === 'Password auditor' ? 'Enter a sample password (do not use a real password).' : name === 'URL inspector' ? 'https://example.com/path?query=value' : name === 'Regex workbench' ? '^admin\n gi\nadmin\nuser\nroot' : 'Paste text to analyze...'} rows={6}/><button className="primary-btn run-btn" disabled={!input.trim() || busy} onClick={run}>{busy ? 'Processing…' : 'Run locally'} <ArrowUpRight size={15}/></button>{result && <div className="result-box"><div className="result-head">OUTPUT <button onClick={() => navigator.clipboard?.writeText(result)}>Copy</button></div><pre>{result}</pre></div>}<p className="privacy-note"><LockKeyhole size={13}/> Processing happens in this browser. Input is not uploaded.</p></> : <div className="module-placeholder"><FlaskConical size={28}/><h3>Not available yet</h3><p>This capability is not implemented. No fake scan or remote action will be executed.</p></div>}</div></div>
 }
 export default App
