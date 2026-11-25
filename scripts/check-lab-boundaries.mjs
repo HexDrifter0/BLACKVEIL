@@ -19,7 +19,7 @@ let config;
 try {
   const output = execFileSync(
     'docker',
-    ['compose', '-f', composeFile, 'config', '--format', 'json'],
+    ['compose', '--profile', 'tools', '-f', composeFile, 'config', '--format', 'json'],
     { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
   );
   config = JSON.parse(output);
