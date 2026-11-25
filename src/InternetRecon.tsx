@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Activity, ArrowUpRight, Bug, Certificate, Database, Globe, LoaderCircle, Search, ShieldCheck, Wifi } from 'lucide-react'
+import { Activity, ArrowUpRight, Bug, Database, Globe, LoaderCircle, Search, ShieldCheck, Wifi } from 'lucide-react'
 
 type LookupKind='dns'|'rdap'|'certificates'|'cves'
 const kinds:{id:LookupKind;label:string;description:string}[]=[
