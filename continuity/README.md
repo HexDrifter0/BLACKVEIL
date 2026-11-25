@@ -16,7 +16,7 @@ The control plane supports two provider adapters:
 - `openai`: OpenAI Responses API, configured with a project-specific API key and model.
 - `webhook`: an existing agent runtime exposed through an authenticated HTTPS endpoint.
 
-The intended initial mapping is BLACKVEIL -> OpenAI and THE HIDDEN TRUTH -> existing-agent webhook. The webhook endpoint and credentials for THE HIDDEN TRUTH are deliberately not guessed; they must be supplied by the owner. Both adapters must implement the same handoff contract. An OpenAI model response alone is not a repository executor: autonomous code changes require a separately configured, scoped GitHub-capable execution worker. Until that worker is connected, the control plane can monitor, checkpoint and dispatch work but cannot claim to have edited either project.
+The intended hybrid mapping is BLACKVEIL -> OpenAI Responses API for checkpoint compaction + a project execution webhook; THE HIDDEN TRUTH -> its existing agent runtime through a project execution webhook. The execution endpoints and credentials are deliberately not guessed; they must be supplied by the owner. Both webhooks must implement the contract in [PROVIDER_CONTRACT.md](./PROVIDER_CONTRACT.md). An OpenAI model response alone is not a repository executor: autonomous code changes require a separately configured, scoped GitHub-capable execution worker. Until both execution workers are connected, the control plane can monitor and checkpoint but cannot claim to have edited either project.
 
 ## Persistence and continuity
 
