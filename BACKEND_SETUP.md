@@ -32,6 +32,7 @@ Migration: `supabase/migrations/20261125022608_blackveil_core_workspace.sql`
 - `engagements`: owner-scoped assessment records, explicit authorization and expiry.
 - `threat_indicators`: owner-scoped IOC register and enrichment.
 - `audit_events`: append-only client event trail (users can read and insert their own events; no update/delete policy).
+- `intel_request_events`: private provider rate-limit ledger; RLS denies browser access and only the Edge Function service role can use it.
 
 RLS is enabled on every table. All user data policies scope access to `auth.uid()`. The Supabase security advisor returned no lints immediately after migration.
 
@@ -60,8 +61,6 @@ The function is live, but provider results remain `not_configured` until the fol
 - `ABUSEIPDB_API_KEY`
 
 Never add these keys to GitHub Pages, Vite environment variables, this repository, or chat messages.
-
-Nmap/Nuclei/ZAP are not running from GitHub Pages. They require a separate hardened worker, target allowlisting, server-side authorization checks, DNS/SSRF controls, resource limits and a deployment target. Do not treat an engagement checkbox or a database record as proof that a scanner has been deployed.
 
 Nmap/Nuclei/ZAP are not running from GitHub Pages. They require a separate hardened worker, target allowlisting, server-side authorization checks, DNS/SSRF controls, resource limits and a deployment target. Do not treat an engagement checkbox or a database record as proof that a scanner has been deployed.
 
