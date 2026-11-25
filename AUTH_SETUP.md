@@ -1,66 +1,77 @@
 # BLACKVEIL authentication setup
 
-BLACKVEIL uses Supabase Auth for real email/password sessions and Google, Apple and GitHub OAuth. The browser bundle must contain only the Supabase project URL and publishable/anon key. Never add a Supabase service-role key, provider client secret or OpenAI client secret to Vite variables.
+BLACKVEIL uses Supabase Auth for real email/password sessions and Google, Apple and GitHub OAuth. The browser bundle may contain only the Supabase project URL and a publishable key (or legacy anon key). Never put a Supabase secret/service-role key, provider client secret or OpenAI client secret in Vite variables.
 
-## 1. Select the dedicated Supabase project
+## 1. Dedicated Supabase project
 
-Use a Supabase project dedicated to BLACKVEIL. Apply the SQL migrations in `supabase/migrations/` to that project. The profile migration creates a user-owned `profiles` table protected by row-level security (RLS).
+BLACKVEIL uses this Supabase project:
 
-## 2. Configure the application URLs
+- Project reference: `robmzfodqbijekqxrhyd`
+- API URL: `https://robmzfodqbijekqxrhyd.supabase.co`
+- Region: Frankfurt (`eu-central-1`)
+
+The project is active. Apply the SQL migrations in `supabase/migrations/` to this project. The profile migration creates a user-owned `profiles` table protected by row-level security (RLS).
+
+## 2. Configure application redirect URLs
 
 In Supabase Dashboard → Authentication → URL Configuration:
 
 - Site URL: `https://hexdrifter0.github.io/BLACKVEIL/`
-- Additional redirect URLs: `https://hexdrifter0.github.io/BLACKVEIL/**` and `http://localhost:5173/**`
+- Additional redirect URLs:
+  - `https://hexdrifter0.github.io/BLACKVEIL/`
+  - `https://hexdrifter0.github.io/BLACKVEIL/**`
+  - `http://localhost:5173/BLACKVEIL/`
+  - `http://localhost:5173/BLACKVEIL/**`
 
-The provider callback URI to register at Google, Apple and GitHub is the Supabase Auth callback, not the GitHub Pages URL:
+The app's OAuth `redirectTo` is the GitHub Pages app URL (or the equivalent local Vite URL). The provider callback registered with Google, Apple and GitHub is different: it must point to Supabase Auth:
 
-`https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`
+```
+https://robmzfodqbijekqxrhyd.supabase.co/auth/v1/callback
+```
 
-Replace `YOUR_PROJECT_REF` with the selected project's reference.
+## 3. Configure Google, GitHub and Apple
 
-## 3. Configure social providers
+Create one OAuth application for each provider, then configure its credentials in Supabase Dashboard → Authentication → Sign In / Providers. Enable the provider and save its credentials.
 
-In Supabase Dashboard → Authentication → Sign In / Providers, enable each provider after creating its OAuth application:
+- **Google:** create a Web application OAuth client in Google Cloud Console. Add the Supabase callback above to Authorized redirect URIs.
+- **GitHub:** create an OAuth App in GitHub Developer Settings. Set the homepage to `https://hexdrifter0.github.io/BLACKVEIL/` and the Authorization callback URL to the Supabase callback above.
+- **Apple:** configure Sign in with Apple, a Services ID and the required domain/return URL association in Apple Developer. Generate the client-secret JWT using the Apple private key, then enter the Services ID and JWT in Supabase. Apple setup has additional developer-account and domain verification requirements.
 
-- Google: Google Cloud Console → OAuth client (Web application).
-- GitHub: GitHub Developer Settings → OAuth Apps.
-- Apple: Apple Developer → Services ID, Sign in with Apple capability and a generated client-secret JWT.
-
-For each provider, enter its client ID and client secret in the Supabase dashboard. Provider secrets remain in Supabase; do not put them in GitHub or frontend environment variables. Provider configuration is not complete until the provider dashboard and Supabase both accept the callback.
-
-Email/password sign-up, sign-in and password recovery use Supabase Auth. Email confirmation and SMTP delivery must be configured in the Supabase Auth settings for production-grade mail delivery.
+For all three providers, the client ID and client secret belong in Supabase's provider settings, not in the browser bundle or GitHub Actions. The provider callback URL is the Supabase URL above, not the GitHub Pages URL.
 
 ## 4. Configure GitHub Pages build variables
 
-Add these repository Actions secrets (Settings → Secrets and variables → Actions):
+The deployment workflow reads these repository Actions secrets at build time (GitHub → repository Settings → Secrets and variables → Actions):
 
-- `VITE_SUPABASE_URL`: the project's API URL.
-- `VITE_SUPABASE_ANON_KEY`: the project's publishable key (or legacy anon key).
+- `VITE_SUPABASE_URL`: `https://robmzfodqbijekqxrhyd.supabase.co`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`: the project's publishable key (preferred), or
+- `VITE_SUPABASE_ANON_KEY`: the legacy anon key (supported as a fallback).
 
-The deployment workflow reads these at build time. These two values are intended for browser use; no privileged secret belongs here.
+The current frontend client also contains the project's public URL and publishable key as fallback values, so a missing Actions secret alone should not produce the backend-not-configured banner in the current source. These are public browser credentials protected by RLS; they are not privileged secrets. Never add a `service_role` or `sb_secret_` key.
 
-For local development, copy `.env.example` to `.env.local` and set the same two values.
+For local development, copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 
 ## 5. Sign in with ChatGPT (OpenAI)
 
 This is a separate OpenID Connect integration; it is not a Supabase built-in social provider. It requires an OpenAI-issued OAuth client ID, registered callback URI, PKCE state handling, server-side code exchange, ID-token signature/issuer/audience/nonce verification, and creation/linking of a BLACKVEIL account. Do not use an OpenAI API key as an identity credential.
 
-OpenAI's current website SIWC documentation states that website identity sign-in is available to selected commercial partners through a limited trial. Request access/client registration from OpenAI before enabling it. Once approved, deploy the secure backend callback and set `VITE_OPENAI_AUTH_URL` to its public start endpoint. The UI intentionally does not simulate this sign-in method.
+Website identity sign-in is available only to eligible partners. Request access/client registration from OpenAI before enabling it. Once approved, deploy the secure backend callback and set `VITE_OPENAI_AUTH_URL` to its public start endpoint. The UI intentionally does not simulate this sign-in method.
+
+## 6. Verification checklist
+
+1. Confirm Supabase Auth provider status is enabled for Google, Apple and GitHub.
+2. Confirm each provider's client ID/secret is saved in Supabase.
+3. Confirm the provider's registered callback exactly matches the Supabase callback above.
+4. Confirm the Site URL and Additional Redirect URLs include the production and local app URLs above.
+5. Confirm the GitHub Pages deployment uses the latest commit. A currently deployed page that still shows the old backend-not-configured banner is likely serving a stale bundle or a different deployment: the current `src/lib/supabase.ts` has non-empty public fallback credentials and should create a client.
+6. Test each provider with a real account in a private browser window. Verify return to BLACKVEIL, a valid Supabase session, profile access and sign-out.
+7. Test email sign-up, confirmation, password sign-in, recovery and profile persistence separately.
+
+A button appearing in the interface is not proof of provider configuration. BLACKVEIL must pass end-to-end tests for each provider before authentication is considered production-ready.
 
 Official references:
-- https://developers.openai.com/siwc/quickstart
-- https://developers.openai.com/siwc/website
 - https://supabase.com/docs/guides/auth/social-login
 - https://supabase.com/docs/guides/auth/redirect-urls
-
-## 6. Verify
-
-After configuration:
-1. Confirm Supabase Auth provider status is enabled.
-2. Confirm the profile migration is applied.
-3. Add the two GitHub Actions secrets and redeploy.
-4. Test sign-up, email confirmation, sign-in, sign-out, password recovery and profile persistence in a second browser/device.
-5. Test each OAuth provider with a real provider account and verify the resulting Supabase session.
-
-A button appearing in the interface is not proof of provider configuration. BLACKVEIL must be tested end-to-end before calling authentication production-ready.
+- https://supabase.com/docs/guides/auth/social-login/auth-google
+- https://supabase.com/docs/guides/auth/social-login/auth-github
+- https://supabase.com/docs/guides/auth/social-login/auth-apple
