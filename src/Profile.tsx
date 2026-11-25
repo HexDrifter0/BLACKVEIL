@@ -35,7 +35,10 @@ export default function Profile({ user, onSignIn }: Props) {
     const payload = { id:user.id, display_name:profile.display_name?.trim() || null, username:profile.username?.trim().toLowerCase() || null, bio:profile.bio?.trim() || null, avatar_url:profile.avatar_url?.trim() || null, preferred_profile:profile.preferred_profile, updated_at:new Date().toISOString() }
     const { error } = await supabase.from('profiles').upsert(payload)
     if (error) setError(error.message)
-    else setNotice('Perfil guardado en tu cuenta.')
+    else {
+      await supabase.from('audit_events').insert({ user_id:user.id, event_type:'profile.updated', resource_type:'profile', resource_id:user.id })
+      setNotice('Perfil guardado en tu cuenta.')
+    }
     setBusy(false)
   }
 
