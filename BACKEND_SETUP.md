@@ -57,7 +57,7 @@ The authenticated Supabase Edge Function `intel-enrichment` is deployed and call
 The function is live, but provider results remain `not_configured` until the following secrets are added in Supabase Dashboard → Edge Functions → Secrets:
 - `VIRUSTOTAL_API_KEY`
 - `SHODAN_API_KEY`
-- `CENSYS_API_ID` and `CENSYS_API_SECRET`
+- `CENSYS_API_TOKEN` (Censys Platform personal access token)
 - `ABUSEIPDB_API_KEY`
 
 Never add these keys to GitHub Pages, Vite environment variables, this repository, or chat messages.
