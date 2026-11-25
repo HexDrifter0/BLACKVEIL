@@ -29,6 +29,10 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Build Vite application
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_OPENAI_AUTH_URL: ${{ secrets.VITE_OPENAI_AUTH_URL }}
         run: npm run build
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
