@@ -33,7 +33,6 @@ const tools: ToolItem[] = [
   { name: 'Password auditor', description: 'Evalúa entropía estimada y patrones débiles localmente', category: 'Identity', icon: ShieldCheck, status: 'READY' },
   { name: 'URL inspector', description: 'Descompone URL, parámetros y componentes', category: 'Web', icon: Search, status: 'READY' },
   { name: 'Regex workbench', description: 'Prueba expresiones regulares sobre texto', category: 'Developer', icon: FileSearch, status: 'READY' },
-  { name: 'Asset inventory', description: 'Inventario manual de activos y alcance', category: 'Recon', icon: Radar, status: 'READY' }
 ]
 const nav = [
   { label: 'Overview', icon: LayoutDashboard },
