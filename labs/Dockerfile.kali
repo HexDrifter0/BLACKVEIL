@@ -1,0 +1,17 @@
+FROM kalilinux/kali-rolling
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates curl dnsutils git jq netcat-openbsd nikto nmap python3 \
+       python3-pip sqlmap whois \
+    && useradd --create-home --uid 1000 --shell /bin/bash analyst \
+    && mkdir -p /workspace \
+    && chown -R analyst:analyst /workspace \
+    && if [ -x /usr/bin/nmap ]; then setcap cap_net_raw+eip /usr/bin/nmap; fi \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+USER analyst
+CMD ["sleep", "infinity"]
