@@ -37,6 +37,8 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      - name: Install repository npm dependencies for Deno's npm resolver
+        run: npm install
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - name: Check Supabase Edge Function types
