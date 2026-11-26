@@ -37,7 +37,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install repository npm dependencies for Deno's npm resolver
         run: npm install
       - name: Install PostgreSQL client
