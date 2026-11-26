@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "supabase/**"
+      - "deno.json"
       - "scripts/test-intel-rate-limit.sh"
       - ".github/workflows/supabase-rate-limit.yml"
   push:
