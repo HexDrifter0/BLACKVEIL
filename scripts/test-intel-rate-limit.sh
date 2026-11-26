@@ -64,8 +64,12 @@ if [[ "$accepted" -ne 5 || "$denied" -ne 1 ]]; then
   exit 1
 fi
 
-second_user="$(psql -X -A -t -v ON_ERROR_STOP=1 \
-  -c "select public.consume_intel_request('22222222-2222-4222-8222-222222222222', 5, 60);")"
+second_user="$(psql -X -A -t -q -v ON_ERROR_STOP=1 <<'SQL'
+set role service_role;
+select public.consume_intel_request('22222222-2222-4222-8222-222222222222', 5, 60);
+reset role;
+SQL
+)"
 if [[ "$second_user" != "t" ]]; then
   echo "A separate user should have an independent quota." >&2
   exit 1
