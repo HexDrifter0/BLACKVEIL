@@ -51,7 +51,7 @@ Public DNS, RDAP, Certificate Transparency and NVD lookups are currently perform
 The authenticated Supabase Edge Function `intel-enrichment` is deployed and called by the Internet Intelligence screen. It supports:
 - VirusTotal for IPv4, domains and file hashes.
 - Shodan, Censys and AbuseIPDB for IPv4 addresses.
-- Supabase Auth JWT verification, a per-user limit of five lookups per minute, and audit events.
+- Supabase Auth JWT verification, an atomic per-user limit of five lookups per rolling minute, and audit events. The atomic quota is provided by `public.consume_intel_request` in `supabase/migrations/20261127010000_atomic_intel_rate_limit.sql`; only `service_role` can execute it or read the rate-limit ledger. Expired ledger events are pruned opportunistically after 24 hours.
 - Server-side API keys only; provider secrets are never returned to the browser.
 
 The function is live, but provider results remain `not_configured` until the following secrets are added in Supabase Dashboard → Edge Functions → Secrets:
@@ -62,8 +62,10 @@ The function is live, but provider results remain `not_configured` until the fol
 
 Never add these keys to GitHub Pages, Vite environment variables, this repository, or chat messages.
 
+**Deployment order for the atomic quota change:** apply the new rate-limit migration to a disposable/test Supabase database, verify the SQL regression workflow, then apply the migration to the intended Supabase project before deploying this Edge Function version. This repository branch does not apply migrations or deploy functions. The current `main` branch still contains the previous count-then-insert implementation until these changes are reviewed and released.
+
 Nmap/Nuclei/ZAP are not running from GitHub Pages. They require a separate hardened worker, target allowlisting, server-side authorization checks, DNS/SSRF controls, resource limits and a deployment target. Do not treat an engagement checkbox or a database record as proof that a scanner has been deployed.
 
 ## Verification
 
-The migration was applied to the BLACKVEIL Supabase project, all four tables were confirmed present with RLS enabled, and the Supabase security advisor returned no lints. GitHub Actions typecheck/build must also pass after each code change. OAuth providers, email delivery, the public Pages UI and any remote scanner still require end-to-end deployment testing.
+The existing core migrations were previously reported as applied to the BLACKVEIL Supabase project. The new atomic rate-limit migration in this branch has not been applied to any hosted database. Its SQL behavior is exercised by the disposable PostgreSQL CI workflow; production deployment remains a separate, owner-approved operation. GitHub Actions typecheck/build must also pass after each code change. OAuth providers, email delivery, the public Pages UI and any remote scanner still require end-to-end deployment testing.

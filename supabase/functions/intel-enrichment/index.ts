@@ -51,15 +51,27 @@ Deno.serve(async (req: Request) => {
   const serviceKey = secretKeys.default;
   if (!serviceKey) return reply(503, { error: "server_configuration_missing" });
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-  const since = new Date(Date.now() - 60_000).toISOString();
-  const { count, error: rateReadError } = await admin.from("intel_request_events")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", authData.user.id)
-    .gte("created_at", since);
-  if (rateReadError) return reply(503, { error: "rate_limit_unavailable" });
-  if ((count ?? 0) >= 5) return reply(429, { error: "rate_limit_exceeded", limit: "5 requests per minute" });
-  const { error: rateWriteError } = await admin.from("intel_request_events").insert({ user_id: authData.user.id });
-  if (rateWriteError) return reply(503, { error: "rate_limit_unavailable" });
+
+  // Quota consumption is serialized in PostgreSQL. A count-then-insert sequence
+  // in the Edge Function would allow concurrent requests to exceed the limit.
+  let rateAllowed: boolean;
+  try {
+    const { data, error } = await admin.rpc("consume_intel_request", {
+      p_user_id: authData.user.id,
+      p_limit: 5,
+      p_window_seconds: 60,
+    });
+    if (error || typeof data !== "boolean") {
+      console.error("intel-enrichment rate-limit RPC failed", error?.code ?? "invalid_rpc_response");
+      return reply(503, { error: "rate_limit_unavailable" });
+    }
+    rateAllowed = data;
+  } catch (error) {
+    console.error("intel-enrichment rate-limit RPC threw", error instanceof Error ? error.name : "unknown");
+    return reply(503, { error: "rate_limit_unavailable" });
+  }
+
+  if (!rateAllowed) return reply(429, { error: "rate_limit_exceeded", limit: "5 requests per minute" });
 
   const results: Record<string, unknown> = {};
   const run = async (name: string, keyNames: string[], operation: () => Promise<unknown>) => {
@@ -97,13 +109,22 @@ Deno.serve(async (req: Request) => {
   });
 
   const statuses = Object.fromEntries(Object.entries(results).map(([key, value]: [string, any]) => [key, value.status]));
-  await supabase.from("audit_events").insert({
-    user_id: authData.user.id,
-    event_type: "threat_intelligence.enriched",
-    resource_type: "indicator",
-    resource_id: indicator,
-    metadata: { indicator_type: kind, provider_status: statuses },
-  });
+  try {
+    const { error: auditError } = await supabase.from("audit_events").insert({
+      user_id: authData.user.id,
+      event_type: "threat_intelligence.enriched",
+      resource_type: "indicator",
+      resource_id: indicator,
+      metadata: { indicator_type: kind, provider_status: statuses },
+    });
+    if (auditError) {
+      console.error("intel-enrichment audit persistence failed", auditError.code ?? "unknown");
+      return reply(503, { error: "audit_persistence_failed" });
+    }
+  } catch (error) {
+    console.error("intel-enrichment audit persistence threw", error instanceof Error ? error.name : "unknown");
+    return reply(503, { error: "audit_persistence_failed" });
+  }
 
   return reply(200, { indicator, indicator_type: kind, results });
 });

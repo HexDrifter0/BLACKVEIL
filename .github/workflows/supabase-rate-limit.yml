@@ -1,0 +1,57 @@
+name: Supabase rate-limit regression
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - "deno.json"
+      - "scripts/test-intel-rate-limit.sh"
+      - ".github/workflows/supabase-rate-limit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - "scripts/test-intel-rate-limit.sh"
+      - ".github/workflows/supabase-rate-limit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  rate-limit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install repository npm dependencies for Deno's npm resolver
+        run: npm install
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Check Supabase Edge Function types
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check supabase/functions/intel-enrichment/index.ts
+      - name: Apply migrations and test concurrent quota enforcement
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: bash scripts/test-intel-rate-limit.sh
