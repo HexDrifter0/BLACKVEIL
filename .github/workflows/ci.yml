@@ -23,7 +23,7 @@ jobs:
           npm audit --json > npm-audit.json
           audit_exit=$?
           set -e
-          node --input-type=module <<'NODE'
+          AUDIT_EXIT="$audit_exit" node --input-type=module <<'NODE'
           import { readFileSync, appendFileSync } from 'node:fs'
 
           let report
@@ -57,7 +57,7 @@ jobs:
           const lines = [
             '## Dependency audit',
             '',
-            `npm audit exit code: ${audit_exit} (code 1 may indicate vulnerabilities below the enforced high/critical threshold).`,
+            `npm audit exit code: ${process.env.AUDIT_EXIT ?? 'unknown'} (code 1 may indicate vulnerabilities below the enforced high/critical threshold).`,
             `Totals: ${counts.info} info, ${counts.low} low, ${counts.moderate} moderate, ${counts.high} high, ${counts.critical} critical.`,
             ''
           ]
