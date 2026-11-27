@@ -5,8 +5,9 @@ Read `continuity/STATUS.md` first, then verify every branch, PR, issue and CI ru
 ## Immediate priorities
 
 1. **Reproducible dependency installation (PR #7 / issue #3).**
-   - The Vite 7.3.8 update and fail-closed npm audit gate pass CI, but `package-lock.json` remains a seven-day Actions artifact from run [45721774732](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45721774732), not a committed repository file.
-   - Transfer the artifact into `chore/dependency-audit-report` if the available tools can do so without changing repository permissions. Then replace `npm install` with `npm ci`, update README development instructions and rerun audit, typecheck, build and Compose validation.
+   - Vite 7.3.8, the fail-closed npm audit gate, and loopback-only Vite dev/preview defaults are implemented on the PR branch. Latest CI [46082514612](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/46082514612) passed audit parsing, typecheck, build and Compose validation.
+   - The generated `package-lock.json` remains a seven-day Actions artifact from run [45721774732](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45721774732), not a committed repository file.
+   - Transfer the artifact into `chore/dependency-audit-report` if the available tools can do so without changing repository permissions. Then replace `npm install` with `npm ci`, update README install instructions and rerun audit, typecheck, build and Compose validation.
    - If artifact-to-GitHub file transfer is unavailable, state the exact limitation; do not claim a lockfile was committed. Keep issue #3 open.
    - `main` still uses Vite 7.2.2, so the high-severity remediation is not in the default branch.
 
