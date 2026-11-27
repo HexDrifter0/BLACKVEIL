@@ -1,0 +1,61 @@
+databases:
+  - name: continuity-state
+    databaseName: continuity_state
+    user: continuity
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: 16
+
+services:
+  - type: web
+    name: continuity-control-plane
+    runtime: python
+    plan: free
+    region: frankfurt
+    branch: feat/autonomous-continuity-control-plane
+    rootDir: continuity
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: continuity-state
+          property: connectionString
+      - key: CONTINUITY_API_TOKEN
+        generateValue: true
+      - key: SUPERVISOR_INTERVAL_SECONDS
+        value: "300"
+      - key: CONTEXT_CHECKPOINT_PERCENT
+        value: "75"
+      - key: CONTEXT_HARD_LIMIT_PERCENT
+        value: "80"
+      - key: APPROVAL_POLICY
+        value: critical
+      - key: AUTONOMY_MODE
+        value: autonomous
+      - key: BLACKVEIL_PROVIDER
+        value: openai
+      - key: BLACKVEIL_MODEL
+        sync: false
+      - key: BLACKVEIL_OPENAI_API_KEY
+        sync: false
+      - key: BLACKVEIL_AGENT_WEBHOOK_URL
+        sync: false
+      - key: BLACKVEIL_AGENT_WEBHOOK_TOKEN
+        sync: false
+      - key: THE_HIDDEN_TRUTH_PROVIDER
+        value: webhook
+      - key: THE_HIDDEN_TRUTH_AGENT_WEBHOOK_URL
+        sync: false
+      - key: THE_HIDDEN_TRUTH_AGENT_WEBHOOK_TOKEN
+        sync: false
+      - key: BLACKVEIL_GITHUB_TOKEN
+        sync: false
+      - key: THE_HIDDEN_TRUTH_GITHUB_TOKEN
+        sync: false
+      - key: BLACKVEIL_REPOSITORY
+        value: HexDrifter0/BLACKVEIL
+      - key: THE_HIDDEN_TRUTH_REPOSITORY
+        value: HexDrifter0/the-archivits-files
