@@ -15,6 +15,89 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Capture dependency audit details
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          npm audit --json > npm-audit.json
+          audit_exit=$?
+          set -e
+          AUDIT_EXIT="$audit_exit" node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs'
+
+          let report
+          try {
+            report = JSON.parse(readFileSync('npm-audit.json', 'utf8'))
+          } catch {
+            const message = 'Dependency audit did not return valid JSON. Treating the audit as unavailable, not clean.'
+            console.error(message)
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Dependency audit\n\n${message}\n`)
+            process.exit(1)
+          }
+
+          if (report.error || !report.metadata?.vulnerabilities || typeof report.vulnerabilities !== 'object') {
+            const detail = report.error?.summary ?? report.error?.message ?? 'Required npm audit metadata is missing.'
+            const message = `Dependency audit failed: ${detail}`
+            console.error(message)
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Dependency audit\n\n${message}\n`)
+            process.exit(1)
+          }
+
+          const counts = report.metadata.vulnerabilities
+          const severities = ['info', 'low', 'moderate', 'high', 'critical']
+          if (severities.some(key => !Number.isInteger(counts[key]) || counts[key] < 0)) {
+            const message = 'Dependency audit returned incomplete or invalid severity counts.'
+            console.error(message)
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Dependency audit\n\n${message}\n`)
+            process.exit(1)
+          }
+
+          const auditExit = Number(process.env.AUDIT_EXIT)
+          const total = severities.reduce((sum, key) => sum + counts[key], 0)
+          if (!Number.isInteger(auditExit) || auditExit > 1 || (auditExit === 1 && total === 0)) {
+            const message = `npm audit exited with code ${process.env.AUDIT_EXIT ?? 'unknown'} without a valid vulnerability result. Treating the audit as unavailable, not clean.`
+            console.error(message)
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Dependency audit\n\n${message}\n`)
+            process.exit(1)
+          }
+
+          const packages = Object.entries(report.vulnerabilities)
+          const lines = [
+            '## Dependency audit',
+            '',
+            `npm audit exit code: ${auditExit} (code 1 is accepted only when the report contains vulnerabilities below the enforced high/critical threshold).`,
+            `Totals: ${counts.info} info, ${counts.low} low, ${counts.moderate} moderate, ${counts.high} high, ${counts.critical} critical.`,
+            ''
+          ]
+
+          for (const [name, item] of packages) {
+            const via = (item.via ?? []).map(entry =>
+              typeof entry === 'string' ? entry : `${entry.title ?? entry.name ?? 'Advisory'} (${entry.url ?? 'URL unavailable'})`
+            )
+            lines.push(
+              `- **${name}** — ${item.severity}; direct: ${item.isDirect}; range: ${item.range}; fix: ${JSON.stringify(item.fixAvailable ?? false)}`,
+              ...via.map(entry => `  - ${entry}`)
+            )
+          }
+
+          if (packages.length === 0) lines.push('No vulnerable packages were reported.')
+          const summary = lines.join('\n') + '\n'
+          console.log(summary)
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary)
+
+          if (counts.high > 0 || counts.critical > 0) {
+            console.error('High or critical dependency vulnerabilities remain.')
+            process.exit(1)
+          }
+          NODE
+      - name: Upload dependency audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-audit.json
+          retention-days: 7
       - run: npm run typecheck
       - run: npm run build
       - name: Validate local lab Compose configuration

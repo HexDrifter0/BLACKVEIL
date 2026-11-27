@@ -26,6 +26,8 @@ npm run build
 
 Copy `.env.example` to `.env.local` and fill in the Supabase project URL and publishable key when a project is selected.
 
+Vite development and preview servers bind to `127.0.0.1` by default. Only override the host to `0.0.0.0` on a trusted network when LAN access is intentionally required; never expose the development server publicly.
+
 ## Security boundaries
 - No stealth access, credential theft, persistence, lateral movement or actions against systems without explicit authorization.
 - Remote devices must opt in by installing an agent, pairing with a short-lived code and approving each privileged task.
@@ -57,7 +59,6 @@ Browser-only utilities must disclose their local processing limits. Network disc
 
 The private completion certificate is planned at **€2.00 EUR**. Real payment is not enabled until Stripe Checkout, Supabase Auth, server-side progress verification and signed webhooks are configured. See [PAYMENTS.md](./PAYMENTS.md) and the SQL migration under `supabase/migrations`. The certificate is not an official academic qualification.
 
-
 ## Accounts and profiles
 
 The application now includes Supabase Auth client flows for email/password, Google, Apple and GitHub, plus an operator profile stored in a row-level-security-protected `profiles` table. Real sign-in requires a dedicated Supabase project, the profile migration, enabled provider credentials in the Supabase dashboard and the two public build variables configured as GitHub Actions secrets. The UI does not provide simulated authentication. Sign in with ChatGPT is exposed only after an OpenAI-issued client and a secure backend start/callback flow are registered; see `AUTH_SETUP.md`.
@@ -66,12 +67,12 @@ The application now includes Supabase Auth client flows for email/password, Goog
 
 BLACKVEIL uses a dedicated Supabase project for account profiles, authorized engagement records, IOC storage and audit events. See [BACKEND_SETUP.md](./BACKEND_SETUP.md) for authentication/provider configuration, database security and deployment boundaries. A public-key environment template is available in [`.env.example`](./.env.example).
 
-
 ## Core workspace modules
 
 The application includes local-first operational records for:
 - **Asset inventory** — manually register domains, IPs, applications, servers and environments. Adding an asset does not scan it.
-- **Case management** — track findings with severity, status and analyst summaries.\n- **Vulnerability management** — maintain a local finding register with CVE references, affected assets, severity and remediation notes.
+- **Case management** — track findings with severity, status and analyst summaries.
+- **Vulnerability management** — maintain a local finding register with CVE references, affected assets, severity and remediation notes.
 - **Reports** — export a Markdown snapshot of the locally recorded assets and cases.
 
 These records currently live in the browser's local storage. They are not synchronized to Supabase, shared between users, or immutable evidence. Cloud persistence and authorization-aware team access remain planned work.
