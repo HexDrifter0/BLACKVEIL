@@ -15,16 +15,14 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - name: Export generated npm lockfile for reproducible install
-        uses: actions/upload-artifact@v4
-        with:
-          name: npm-package-lock
-          path: package-lock.json
-          retention-days: 7
       - name: Capture dependency audit details
         if: always()
+        shell: bash
         run: |
-          npm audit --json > npm-audit.json || true
+          set +e
+          npm audit --json > npm-audit.json
+          audit_exit=$?
+          set -e
           node --input-type=module <<'NODE'
           import { readFileSync, appendFileSync } from 'node:fs'
 
@@ -32,18 +30,35 @@ jobs:
           try {
             report = JSON.parse(readFileSync('npm-audit.json', 'utf8'))
           } catch {
-            const message = 'Dependency audit report could not be parsed. Check npm/network output.'
-            console.log(message)
+            const message = 'Dependency audit did not return valid JSON. Treating the audit as unavailable, not clean.'
+            console.error(message)
             appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Dependency audit\n\n${message}\n`)
-            process.exit(0)
+            process.exit(1)
           }
 
-          const counts = report.metadata?.vulnerabilities ?? {}
-          const packages = Object.entries(report.vulnerabilities ?? {})
+          if (report.error || !report.metadata?.vulnerabilities || typeof report.vulnerabilities !== 'object') {
+            const detail = report.error?.summary ?? report.error?.message ?? 'Required npm audit metadata is missing.'
+            const message = `Dependency audit failed: ${detail}`
+            console.error(message)
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Dependency audit\n\n${message}\n`)
+            process.exit(1)
+          }
+
+          const counts = report.metadata.vulnerabilities
+          const severities = ['info', 'low', 'moderate', 'high', 'critical']
+          if (severities.some(key => !Number.isInteger(counts[key]) || counts[key] < 0)) {
+            const message = 'Dependency audit returned incomplete or invalid severity counts.'
+            console.error(message)
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Dependency audit\n\n${message}\n`)
+            process.exit(1)
+          }
+
+          const packages = Object.entries(report.vulnerabilities)
           const lines = [
             '## Dependency audit',
             '',
-            `Totals: ${counts.info ?? 0} info, ${counts.low ?? 0} low, ${counts.moderate ?? 0} moderate, ${counts.high ?? 0} high, ${counts.critical ?? 0} critical.`,
+            `npm audit exit code: ${audit_exit} (code 1 may indicate vulnerabilities below the enforced high/critical threshold).`,
+            `Totals: ${counts.info} info, ${counts.low} low, ${counts.moderate} moderate, ${counts.high} high, ${counts.critical} critical.`,
             ''
           ]
 
@@ -61,9 +76,10 @@ jobs:
           const summary = lines.join('\n') + '\n'
           console.log(summary)
           appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary)
+
           if ((counts.high ?? 0) > 0 || (counts.critical ?? 0) > 0) {
             console.error('High or critical dependency vulnerabilities remain.')
-            process.exitCode = 1
+            process.exit(1)
           }
           NODE
       - name: Upload dependency audit report
