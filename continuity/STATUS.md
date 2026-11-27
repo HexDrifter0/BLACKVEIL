@@ -1,30 +1,32 @@
 # BLACKVEIL — Continuity Status
 
-Last verified: 2026-11-26
-Default branch at audit start: `main` — `c6452e6f3bee4af39ea4ab2d07338c5306abe63e`
+Last verified: 2026-11-28
+Default branch: `main` — `c6452e6f3bee4af39ea4ab2d07338c5306abe63e`
 
 ## Current repository state
 
-All work listed below is on separate branches and remains unmerged. Do not treat a successful PR CI run as a production deployment.
+All work listed below remains on separate branches and open draft PRs. Successful CI is not a production deployment, and none of these changes is present on `main`.
 
 | Workstream | Branch / PR | Verified state | Remaining |
 |---|---|---|---|
-| Continuity control-plane foundation | `feat/autonomous-continuity-control-plane` / PR #1 | Draft foundation only | Review code, tests, provider contracts and runtime safety; no deployment |
-| Local cyber-range boundary guard | `quality/lab-network-boundary-guard` / PR #2 | CI passed: run [45593776307](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45593776307) | Review security coverage; keep unmerged |
-| Lazy workspace modules and bundle budget | `perf/lazy-load-workspace-modules-main` / PR #6 | CI passed: run [45721865606](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45721865606); entry 401.67 KiB minified / 118.15 KiB gzip; 7/7 expected lazy chunks present; 500 kB budget passed | Browser navigation and mobile smoke tests |
-| Vite security remediation and audit gate | `chore/dependency-audit-report` / PR #7 | Vite upgraded to 7.3.8; CI passed: run [45721774732](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45721774732); npm audit reports 0 vulnerabilities | Commit the generated package-lock and switch CI to `npm ci` |
-| Truthful workspace status labels | `fix/accurate-workspace-status` / PR #8 | CI passed: run [45721530951](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45721530951) | Browser/UI review |
-| Node 24-compatible CI actions | `ci/update-node24-github-actions` / PR #10 | checkout v7 and setup-node v7 passed CI: run [45722057897](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45722057897); Node 20 deprecation warning absent | Keep unmerged pending review |
+| Continuity control-plane foundation | `feat/autonomous-continuity-control-plane` / PR #1 | Draft foundation and checkpoint/handoff docs only | Review runtime, tests, provider contracts, idempotency and failure recovery; no deployment |
+| Local cyber-range boundary guard | `quality/lab-network-boundary-guard` / PR #2 | CI passed: [45593776307](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45593776307) | Review remaining sandbox hardening and browser/lab behavior |
+| Lazy workspace modules and bundle budget | `perf/lazy-load-workspace-modules-main` / PR #6 | CI passed: [45721865606](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45721865606); initial entry 411.31 kB minified / 120.99 kB gzip; 7/7 lazy chunks; 500 kB budget passed | Browser navigation, loading/error recovery and mobile smoke tests |
+| Vite security remediation and audit gate | `chore/dependency-audit-report` / PR #7 | Vite 7.3.8; fail-closed npm audit gate; latest CI passed: [46082047526](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/46082047526) | Commit `package-lock.json`, switch CI to `npm ci`, update README install instructions |
+| Truthful workspace status labels | `fix/accurate-workspace-status` / PR #8 | CI passed: [45721530951](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45721530951) | Browser/UI review |
+| Node 24-compatible CI actions | `ci/update-node24-github-actions` / PR #10 | checkout v7 and setup-node v7 passed: [45722057897](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45722057897) | Coordinate with PR #7, whose CI workflow still uses checkout/setup-node v4 |
+| Atomic provider rate limiting | `fix/atomic-intel-rate-limit` / PR #11 | Deno check and disposable PostgreSQL 16 regression suite passed: [45914044444](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45914044444); application CI passed: [45913926061](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45913926061) | Review and owner-approved release; no hosted Supabase migration or Edge Function deployment |
 
 ## Open issues
 
-- [#3 — Vite security remediation](https://github.com/HexDrifter0/BLACKVEIL/issues/3): Vite 7.3.8 branch audit is clean; lockfile is generated as a short-lived Actions artifact but is not committed.
-- [#4 — Bundle size and lazy modules](https://github.com/HexDrifter0/BLACKVEIL/issues/4): budget and 7/7 chunk split verified; browser/mobile smoke tests remain.
-- [#9 — Concurrency-safe provider rate limit](https://github.com/HexDrifter0/BLACKVEIL/issues/9): count-then-insert race, ignored audit insert error and event retention need a tested atomic solution.
+- [#3 — Vite security remediation](https://github.com/HexDrifter0/BLACKVEIL/issues/3): Vite 7.3.8 and audit gate are validated on PR #7. The lockfile is still only a temporary Actions artifact from [45721774732](https://github.com/HexDrifter0/BLACKVEIL/actions/runs/45721774732), not a repository file. `main` still declares Vite 7.2.2, so the remediation is not yet in the default branch.
+- [#4 — Bundle size and lazy modules](https://github.com/HexDrifter0/BLACKVEIL/issues/4): budget and 7/7 chunk split are verified; browser/mobile smoke tests remain.
+- [#9 — Concurrency-safe provider rate limit](https://github.com/HexDrifter0/BLACKVEIL/issues/9): PR #11 implements the atomic RPC and explicit audit failure handling. The disposable PostgreSQL suite passed, but hosted Supabase deployment remains unperformed and unapproved.
 
 ## Environment and safety
 
-- Supabase Preview reports that preview branches are disabled. No database migration or Edge Function runtime behavior has been tested against a disposable Supabase database.
+- Supabase Preview branches are reported disabled. PR #11 tests SQL against a disposable PostgreSQL 16 service, not a complete disposable Supabase stack and not the hosted project.
 - No PR has been merged to `main`; no deployment or paid service has been created.
-- Do not modify billing, secrets, credentials, permissions, production data or protected branches without explicit approval.
-- A successful build verifies compilation, not live authentication, cloud synchronization, provider connectivity or agent pairing.
+- No production database, secrets, credentials, billing, repository permissions or protected branches have been changed.
+- A successful build verifies compilation, not live authentication, cloud synchronization, provider connectivity, agent pairing or browser-level behavior.
+- Keep the strict zero-cost constraint. Never merge, deploy, publish, modify permissions/secrets, or perform destructive actions without explicit approval.
